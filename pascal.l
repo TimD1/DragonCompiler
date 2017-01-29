@@ -13,7 +13,7 @@ addition_op "+" | "-" | "or"
 mult_op		"*" | "/" | "and"
 dotdot		\.\.
 whitespace 	[ \t]*
-endline		[\n\r]
+endline		[\r\n]
 
 %%
 
@@ -26,7 +26,7 @@ real			{ fprintf( stderr, "[REAL]" ); return REAL; }
 of				{ fprintf( stderr, "[OF]" ); return OF; }
 function		{ fprintf( stderr, "[FUNCTION]" ); return FUNCTION; }
 procedure		{ fprintf( stderr, "[PROCEDURE]" ); return PROCEDURE; }
-begin			{ fprintf( stderr, "[BEGIN]" ); return BEGIN; }
+begin			{ fprintf( stderr, "[BEGIN]" ); return BEG; }
 end				{ fprintf( stderr, "[END]" ); return END; }
 if				{ fprintf( stderr, "[IF]" ); return IF; }
 then			{ fprintf( stderr, "[THEN]" ); return THEN; }
@@ -42,7 +42,7 @@ not				{ fprintf( stderr, "[NOT]" ); return NOT; }
 {inum}			{ fprintf( stderr, "[INUM:%d]", yylval.ival = atoi(yytext) ); return INUM; }
 {identifier}	{ fprintf( stderr, "[IDENT:%s]", yylval.sval = yytext ); return IDENT; }
 {whitespace} 	{ ; }
-{endline} 		{ fprintf( stderr, "[EOL]" ); return yytext[0]; }
+{endline} 		{ fprintf( stderr, "[EOL]\n" ); }
 .				{ fprintf( stderr, "{%c}", yytext[0] ); return yytext[0]; }
 
 %%
