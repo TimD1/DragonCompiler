@@ -1,5 +1,8 @@
-all: y.tab.o lex.yy.o
-	gcc -g -o compiler y.tab.o lex.yy.o -ll -ly
+all: y.tab.o lex.yy.o tree.o
+	gcc -g -o compiler y.tab.o lex.yy.o tree.o -ll -ly
+
+tree.o: tree.c
+	gcc -g -c tree.c
 
 y.tab.o: y.tab.c
 	gcc -g -c y.tab.c

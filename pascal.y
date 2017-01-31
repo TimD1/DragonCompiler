@@ -10,6 +10,8 @@ int yydebug = 1;
 	float fval;
 	int opval;
 	char *sval;
+
+	tree_t *tval;
 }
 
 /* these tokens must return the correct value type */
