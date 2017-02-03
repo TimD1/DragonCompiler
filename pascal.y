@@ -14,18 +14,65 @@ int yydebug = 1;
 	tree_t *tval;
 }
 
-/* these tokens must return the correct value type */
+/* tokens (terminals) must return correct value type */
 %token <ival> INUM
 %token <fval> RNUM
-%token <sval> IDENT
-%token PROGRAM ASSIGNOP VAR ARRAY INTEGER REAL OF FUNCTION PROCEDURE BEG END IF THEN ELSE DO WHILE NOT RELOP ADDOP MULOP DOTDOT
 
-/* the variable expr will return an integer value */
-/* %type <ival> expr */
+%token <opval> ADDOP
+%token <opval> MULOP
+%token <opval> RELOP
+%token <opval> ASSIGNOP
+%token <opval> NOT		/* ? */
+
+%token <sval> IDENT
+%token <sval> PROGRAM
+%token <sval> VAR
+%token <sval> ARRAY
+%token <sval> INTEGER
+%token <sval> REAL
+%token <sval> OF
+%token <sval> FUNCTION
+%token <sval> PROCEDURE
+%token <sval> BEG
+%token <sval> END
+%token <sval> IF
+%token <sval> THEN
+%token <sval> ELSE
+%token <sval> DO
+%token <sval> WHILE
+%token <sval> DOTDOT	/* ? */
+
+/* variables must also return correct value type */
+%type <tval> start
+%type <tval> program
+%type <tval> ident_list
+%type <tval> decls
+%type <tval> type
+%type <tval> std_type
+%type <tval> subprogram_decls
+%type <tval> subprogram_decl
+%type <tval> subprogram_head
+%type <tval> args
+%type <tval> param_list
+%type <tval> compound_stmt
+%type <tval> opt_stmts
+%type <tval> stmt_list
+%type <tval> stmt
+%type <tval> var
+%type <tval> procedure_stmt
+%type <tval> expr_list
+%type <tval> expr
+%type <tval> simple_expr
+%type <tval> term
+%type <tval> factor
 
 /* order here specifies precedence */
-%left '+' '-'
-%left '*' '/'
+%left ASSIGNOP
+%left ADDOP
+%left MULOP
+%left RELOP
+%left NOT
+
 
 %%
 
@@ -47,8 +94,8 @@ type: std_type
 	| ARRAY '[' INUM DOTDOT INUM ']' OF std_type
 	;
 
-std_type: INUM
-		| RNUM
+std_type: INTEGER
+		| REAL
 		;
 
 subprogram_decls: subprogram_decls subprogram_decl ';'

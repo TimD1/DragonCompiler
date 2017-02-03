@@ -7,11 +7,11 @@
 
 identifier	[a-zA-z][a-zA-z0-9]*
 inum		[0-9]+
-rnum		[0-9]+\.[0-9]+
+rnum		[0-9]*\.[0-9]+
 relation_op "<" | ">" | "=" | ">=" | "<=" | "<>"
 addition_op "+" | "-" | "or"
 mult_op		"*" | "/" | "and"
-dotdot		\.\.
+dotdot		".."
 whitespace 	[ \t]*
 endline		[\r\n]
 
@@ -34,15 +34,15 @@ else			{ fprintf( stderr, "[ELSE]" ); return ELSE; }
 do				{ fprintf( stderr, "[DO]" ); return DO; }
 while			{ fprintf( stderr, "[WHILE]" ); return WHILE; }
 not				{ fprintf( stderr, "[NOT]" ); return NOT; }
-{relation_op}	{ fprintf( stderr, "[RELOP]" ); return RELOP; }	/* operators need to return ids */
-{addition_op}	{ fprintf( stderr, "[ADDOP]" ); return ADDOP; }
-{mult_op}		{ fprintf( stderr, "[MULOP]" ); return MULOP; }
+{relation_op}	{ fprintf( stderr, "[RELOP:%s]", yylval.sval = strdup(yytext) ); return RELOP; } 
+{addition_op}	{ fprintf( stderr, "[ADDOP:%s]", yylval.sval = strdup(yytext) ); return ADDOP; }
+{mult_op}		{ fprintf( stderr, "[MULOP:%s]", yylval.sval = strdup(yytext) ); return MULOP; }
 {dotdot}		{ fprintf( stderr, "[DOTDOT]" ); return DOTDOT; }
 {rnum}			{ fprintf( stderr, "[RNUM:%f]", yylval.fval = atof(yytext) ); return RNUM; }
 {inum}			{ fprintf( stderr, "[INUM:%d]", yylval.ival = atoi(yytext) ); return INUM; }
 {identifier}	{ fprintf( stderr, "[IDENT:%s]", yylval.sval = yytext ); return IDENT; }
 {whitespace} 	{ ; }
-{endline} 		{ fprintf( stderr, "[EOL]\n" ); }
-.				{ fprintf( stderr, "{%c}", yytext[0] ); return yytext[0]; }
+{endline} 		{ fprintf( stderr, "[EOL]\n" ); return yytext[0]; }
+.				{ fprintf( stderr, "{%c}", yytext[0] ); return yytext[0]; } /* error? */
 
 %%
