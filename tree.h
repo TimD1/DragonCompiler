@@ -7,9 +7,10 @@ typedef struct tree_s {
 	int type; /* NUM ADDOP RELOP MULOP */
 	
 	union {
-		int ival;	/* NUM */
+		int ival;	/* INUM */
+		float fval; /* RNUM */
 		char opval;	/* ADDOP, MULOP */
-
+		char *sval;
 	} attribute;
 
 	struct tree_s *left, *right;

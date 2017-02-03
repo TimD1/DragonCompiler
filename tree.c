@@ -19,11 +19,16 @@ tree_t *make_tree(int type, tree_t *left, tree_t *right)
 void print_tree(tree_t *t, int spaces)
 {
 	if( t == NULL ) return;
+	
 	for(int i = 0; i < spaces; i++)
 		fprintf(stderr, " ");
+	
 	switch( t -> type ) {
-		case NUM:
-			fprintf(stderr, "[NUM:%d]", t->attribute.ival);
+		case INUM:
+			fprintf(stderr, "[INUM:%d]", t->attribute.ival);
+			break;
+		case RNUM:
+			fprintf(stderr, "[RNUM:%f]", t->attribute.fval);
 			break;
 		case ADDOP:
 			fprintf(stderr, "[ADDOP:%c]", t->attribute.opval);
@@ -33,6 +38,7 @@ void print_tree(tree_t *t, int spaces)
 			break;
 		default:
 			fprintf(stderr, "[UNKNOWN]" );
+			exit(1);
 	}
 	fprintf(stderr, "\n");
 	
@@ -48,8 +54,10 @@ int eval_tree(tree_t *t)
 	assert( t != NULL );
 
 	switch(t->type) {
-		case NUM:
+		case INUM:
 			return t->attribute.ival;
+		case RNUM:
+			return t->attribute.fval;
 		case ADDOP:
 			lvalue = eval_tree( t->left );
 			rvalue = eval_tree( t->right );
@@ -70,4 +78,3 @@ int eval_tree(tree_t *t)
 			else assert(0);
 	}
 }
-
