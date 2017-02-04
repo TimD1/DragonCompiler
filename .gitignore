@@ -1,2 +1,9 @@
-# ignore testing
-test*
+# temporary lex and yacc output
+lex.*
+y.*
+
+# object files
+*.o
+
+# final executable
+compiler
