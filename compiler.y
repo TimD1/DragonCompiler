@@ -11,6 +11,9 @@ void yyerror(const char *str) { fprintf(stderr, "error: %s\n", str); }
 int main() { yyparse(); }
 %}
 
+%define parse.error verbose
+%define parse.lac full
+
 /* create union to hold value of current token */
 %union {
 	int ival;
@@ -34,6 +37,7 @@ int main() { yyparse(); }
 
 /* identifier token */
 %token <sval> IDENT
+%token <sval> STRING
 
 /* general keyword tokens */
 %token PROGRAM
@@ -54,28 +58,28 @@ int main() { yyparse(); }
 
 
 /* variables must also return correct value type */
-%type <tval> start
-%type <tval> program
-%type <tval> ident_list
-%type <tval> decls
-%type <tval> type
-%type <tval> std_type
-%type <tval> subprogram_decls
-%type <tval> subprogram_decl
-%type <tval> subprogram_head
-%type <tval> args
-%type <tval> param_list
-%type <tval> compound_stmt
-%type <tval> opt_stmts
-%type <tval> stmt_list
-%type <tval> stmt
-%type <tval> var
-%type <tval> procedure_stmt
-%type <tval> expr_list
-%type <tval> expr
-%type <tval> simple_expr
-%type <tval> term
-%type <tval> factor
+/* %type <tval> start */
+/* %type <tval> program */
+/* %type <tval> ident_list */
+/* %type <tval> decls */
+/* %type <tval> type */
+/* %type <tval> std_type */
+/* %type <tval> subprogram_decls */
+/* %type <tval> subprogram_decl */
+/* %type <tval> subprogram_head */
+/* %type <tval> args */
+/* %type <tval> param_list */
+/* %type <tval> compound_stmt */
+/* %type <tval> opt_stmts */
+/* %type <tval> stmt_list */
+/* %type <tval> stmt */
+/* %type <tval> var */
+/* %type <tval> procedure_stmt */
+/* %type <tval> expr_list */
+/* %type <tval> expr */
+/* %type <tval> simple_expr */
+/* %type <tval> term */
+/* %type <tval> factor */
 
 /* order here specifies precedence */
 %left ASSIGNOP
@@ -181,8 +185,9 @@ expr
 
 simple_expr
 	: term
-	| ADDOP term
+	| ADDOP term						/* ? */
 	| simple_expr ADDOP term
+	| STRING							/* ? */
 	;
 
 term

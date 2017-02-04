@@ -1,5 +1,5 @@
 program HelloWorld(input);
-
+(* this is a comment *)
 begin
-  writeln('Hello World');
+  writeln('Hello World')
 end.
