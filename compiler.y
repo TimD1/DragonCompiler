@@ -1,4 +1,7 @@
 %{
+/* if-then with no else? */
+/* chained relational operators? */
+/* add for statement? */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -159,6 +162,7 @@ stmt
 	: var ASSIGNOP expr
 	| procedure_stmt
 	| compound_stmt
+	| IF expr THEN stmt					/* should we allow this? */
 	| IF expr THEN stmt ELSE stmt
 	| WHILE stmt DO stmt				/* ? */
 	;
@@ -180,7 +184,7 @@ expr_list
 
 expr
 	: simple_expr
-	| simple_expr RELOP simple_expr
+	| expr RELOP simple_expr 			/* allow multiple relops */
 	;
 
 simple_expr

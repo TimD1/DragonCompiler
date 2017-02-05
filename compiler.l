@@ -10,7 +10,7 @@
 %}
 
  /* regular expressions */
-identifier	[a-zA-z][a-zA-z0-9]*
+identifier	[a-zA-Z][a-zA-Z0-9]*
 inum		[0-9]+
 rnum		[0-9]*"."[0-9]+
 relation_op "<"|">"|"="|">="|"<="|"<>"
@@ -30,7 +30,7 @@ string		"'"[a-zA-Z0-9 ]*"'"
 
  /* detect comment states */
 "{"					{ BEGIN COMMENT1; }
-<COMMENT1>[^}] 		|
+<COMMENT1>[^}] 		{ ; }
 <COMMENT1>"}"		{ fprintf(stderr, " {COMMENT}"); BEGIN INITIAL; }
 
 "(*"				{ BEGIN COMMENT2; }
@@ -39,7 +39,7 @@ string		"'"[a-zA-Z0-9 ]*"'"
 <COMMENT2>"*)"		{ fprintf(stderr, " (*COMMENT*)"); BEGIN INITIAL; }
 
 "//"				{ BEGIN COMMENT3; }
-<COMMENT3>. 		|
+<COMMENT3>. 		{ ; }
 <COMMENT3>\n 		{ fprintf(stderr, " //COMMENT"); BEGIN INITIAL; }
 
  /* find all tokens */
