@@ -103,7 +103,7 @@ ident_list
 	;
 
 decls
-	: decls VAR ident_list ':' type ':'
+	: decls VAR ident_list ':' type ';'
 	| /* empty */
 	;
 
