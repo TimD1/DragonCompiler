@@ -4,8 +4,8 @@ program main( input, output );
   (* local variables *)
   var x, y: integer;
   var a, b: real;
-  var c: array[ 1..10 ] of integer;
-  var d: array[ 11..20 ] of real;
+  var c: array [ 1..10 ] of integer;
+  var d: array [ 11..20 ] of real;
 
   (* local function: mixed argument types *)
   function foo( a: integer; x: real; z: integer ): integer;
@@ -18,7 +18,7 @@ program main( input, output );
 	(* boo is visible; so is main's b *)
 	boo( b );	
 
-	(* function return statement; scope and type check on foo's a and main's y *)
+	{ function return statement; scope and type check on foo's a and main's y }
 	foo := a + y
   end;
 

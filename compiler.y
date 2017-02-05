@@ -160,7 +160,7 @@ stmt
 	| procedure_stmt
 	| compound_stmt
 	| IF expr THEN stmt ELSE stmt
-	| WHILE stmt DO stmt
+	| WHILE stmt DO stmt				/* ? */
 	;
 
 var

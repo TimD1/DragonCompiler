@@ -1,6 +1,6 @@
 %{
 /* negative numbers */
-/* handle comments properly */
+/* which types of comments to use? */
 /* strings? not handled right */
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,18 +29,18 @@ string		"'"[a-zA-Z0-9 ]*"'"
 %%
 
  /* detect comment states */
-"{"					{ BEGIN(COMMENT1); }
+"{"					{ BEGIN COMMENT1; }
 <COMMENT1>[^}] 		|
-<COMMENT1>"}"		{ fprintf(stderr, " {COMMENT}"); BEGIN(INITIAL); }
+<COMMENT1>"}"		{ fprintf(stderr, " {COMMENT}"); BEGIN INITIAL; }
 
-"(*"				{ BEGIN(COMMENT2); }
+"(*"				{ BEGIN COMMENT2; }
 <COMMENT2>. 		|
 <COMMENT2>\n 		{ ; }
-<COMMENT2>"*)"		{ fprintf(stderr, " (*COMMENT*)"); BEGIN(INITIAL); }
+<COMMENT2>"*)"		{ fprintf(stderr, " (*COMMENT*)"); BEGIN INITIAL; }
 
-"//"				{ BEGIN(COMMENT3); }
+"//"				{ BEGIN COMMENT3; }
 <COMMENT3>. 		|
-<COMMENT3>\n 		{ fprintf(stderr, " //COMMENT"); BEGIN(INITIAL); }
+<COMMENT3>\n 		{ fprintf(stderr, " //COMMENT"); BEGIN INITIAL; }
 
  /* find all tokens */
 program			{ fprintf( stderr, " [PROGRAM]" ); return PROGRAM; }
@@ -54,11 +54,11 @@ function		{ fprintf( stderr, " [FUNCTION]" ); return FUNCTION; }
 procedure		{ fprintf( stderr, " [PROCEDURE]" ); return PROCEDURE; }
 begin			{ fprintf( stderr, " [BEGIN]" ); return BEG; }
 end				{ fprintf( stderr, " [END]" ); return END; }
-if				{ fprintf( stderr, " [IF]" ); return IF; } /* may need to rename */
+if				{ fprintf( stderr, " [IF]" ); return IF; }
 then			{ fprintf( stderr, " [THEN]" ); return THEN; }
 else			{ fprintf( stderr, " [ELSE]" ); return ELSE; }
 do				{ fprintf( stderr, " [DO]" ); return DO; }
-while			{ fprintf( stderr, " [WHILE]" ); return WHILE; } /* may need to rename */
+while			{ fprintf( stderr, " [WHILE]" ); return WHILE; }
 not				{ fprintf( stderr, " [NOT]" ); return NOT; }
 {relation_op}	{ fprintf( stderr, " [RELOP:%s]", yylval.sval = strdup(yytext) ); return RELOP; } 
 {addition_op}	{ fprintf( stderr, " [ADDOP:%s]", yylval.sval = strdup(yytext) ); return ADDOP; }
@@ -69,10 +69,7 @@ not				{ fprintf( stderr, " [NOT]" ); return NOT; }
 {identifier}	{ fprintf( stderr, " [IDENT:%s]", yylval.sval = yytext ); return IDENT; }
 {string}		{ fprintf( stderr, " [STRING:%s]", yylval.sval = yytext ); return STRING; }
 {whitespace} 	{ ; }
- /* {comment1} 		{ fprintf( stderr, " [COMMENT:%s]", yytext ); }
-{comment2} 		{ fprintf( stderr, " [COMMENT:%s]", yytext ); }
- */
 {endline} 		{ fprintf( stderr, "\n" ); }
-.				{ fprintf( stderr, " {%c}", yytext[0] ); return yytext[0]; } /* error? */
+.				{ fprintf( stderr, " {%c}", yytext[0] ); return yytext[0]; }
 
 %%
