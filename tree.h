@@ -2,17 +2,20 @@
 #define TREE_H
 
 
+/* Semantic analyzer's channel with parser */
 typedef struct tree_s {
-	/* Semantic analyzer's channel with parser */
-	int type; /* NUM ADDOP RELOP MULOP */
+	/* token type */
+	int type;
 	
+	/* actual value of token */
 	union {
-		int ival;	/* INUM */
-		float fval; /* RNUM */
-		char opval;	/* ADDOP, MULOP */
+		int ival;
+		float fval; 
+		char *opval;	
 		char *sval;
 	} attribute;
 
+	/* children nodes */
 	struct tree_s *left, *right;
 
 } tree_t;

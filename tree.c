@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include "tree.h"
 #include "y.tab.h"
 
@@ -31,10 +32,10 @@ void print_tree(tree_t *t, int spaces)
 			fprintf(stderr, "[RNUM:%f]", t->attribute.fval);
 			break;
 		case ADDOP:
-			fprintf(stderr, "[ADDOP:%c]", t->attribute.opval);
+			fprintf(stderr, "[ADDOP:%s]", t->attribute.opval);
 			break;
 		case MULOP:
-			fprintf(stderr, "[MULOP:%c]", t->attribute.opval);
+			fprintf(stderr, "[MULOP:%s]", t->attribute.opval);
 			break;
 		default:
 			fprintf(stderr, "[UNKNOWN]" );
@@ -61,18 +62,18 @@ int eval_tree(tree_t *t)
 		case ADDOP:
 			lvalue = eval_tree( t->left );
 			rvalue = eval_tree( t->right );
-			if(t->attribute.opval == '+') {
+			if( strcmp(t->attribute.opval, "+") ) {
 				return lvalue + rvalue;
-			} else if (t->attribute.opval == '-') {
+			} else if ( strcmp(t->attribute.opval, "-") ) {
 				return lvalue - rvalue;
 			}
 			else assert(0);
 		case MULOP:
 			lvalue = eval_tree( t->left );
 			rvalue = eval_tree( t->right );
-			if(t->attribute.opval == '*') {
+			if( strcmp(t->attribute.opval, "*") ) {
 				return lvalue * rvalue;
-			} else if (t->attribute.opval == '/') {
+			} else if ( strcmp(t->attribute.opval, "/") ) {
 				return lvalue / rvalue;
 			}
 			else assert(0);

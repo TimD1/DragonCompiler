@@ -1,7 +1,4 @@
 %{
-/* if-then with no else? */
-/* chained relational operators? */
-/* add for statement? */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -21,7 +18,7 @@ int main() { yyparse(); }
 %union {
 	int ival;
 	float fval;
-	int opval;
+	char *opval;
 	char *sval;
 
 	tree_t *tval;
@@ -35,7 +32,7 @@ int main() { yyparse(); }
 %token <opval> ADDOP
 %token <opval> MULOP
 %token <opval> RELOP
-%token <opval> ASSIGNOP
+%token <opval> ASSOP
 %token <opval> NOT		/* ? */
 
 /* identifier token */
@@ -58,6 +55,8 @@ int main() { yyparse(); }
 %token BEG END
 %token IF THEN ELSE
 %token DO WHILE
+%token FOR DOWNTO TO
+%token REPEAT UNTIL
 
 
 /* variables must also return correct value type */
@@ -85,11 +84,13 @@ int main() { yyparse(); }
 /* %type <tval> factor */
 
 /* order here specifies precedence */
-%left ASSIGNOP
+%left ASSOP
 %left ADDOP
 %left MULOP
 %left RELOP
 %left NOT
+
+%right THEN ELSE /* choose closest if statement */
 
 /* set starting variable */
 %start program
@@ -159,12 +160,15 @@ stmt_list
 	;
 
 stmt
-	: var ASSIGNOP expr
+	: var ASSOP expr
 	| procedure_stmt
 	| compound_stmt
-	| IF expr THEN stmt					/* should we allow this? */
+	| IF expr THEN stmt	
 	| IF expr THEN stmt ELSE stmt
-	| WHILE stmt DO stmt				/* ? */
+	| WHILE expr DO stmt
+	| REPEAT stmt UNTIL expr
+	| FOR var ASSOP expr TO expr DO stmt
+	| FOR var ASSOP expr DOWNTO expr DO stmt
 	;
 
 var
@@ -189,7 +193,7 @@ expr
 
 simple_expr
 	: term
-	| ADDOP term						/* ? */
+	| ADDOP term						/* optional sign */
 	| simple_expr ADDOP term
 	| STRING							/* ? */
 	;
