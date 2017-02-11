@@ -29,59 +29,64 @@ int main() { yyparse(); }
 %token <fval> RNUM
 
 /* operator tokens */
-%token <opval> ADDOP
-%token <opval> MULOP
-%token <opval> RELOP
-%token <opval> ASSOP
-%token <opval> NOT		/* ? */
+%token <opval> ADDOP	/* 	+ - or 			*/
+%token <opval> MULOP	/* 	* / and 		*/
+%token <opval> RELOP	/* 	< > = <= >= <> 	*/
+%token <opval> ASSOP	/* 	:= 				*/
+%token <opval> NOT		/* 	not 			*/
+
+%token <opval> ARRAYOP	/* 	[] 				*/
+%token <opval> PARENOP	/* 	() 				*/
+%token <opval> LISTOP	/* 	, ; : _ 		*/
 
 /* identifier token */
 %token <sval> IDENT
 %token <sval> STRING
 
 /* general keyword tokens */
-%token PROGRAM
-%token FUNCTION
-%token PROCEDURE
+%token <sval> PROGRAM
+%token <sval> FUNCTION
+%token <sval> PROCEDURE
 
 /* variable and array keyword tokens */
-%token VAR
-%token ARRAY OF
-%token DOTDOT	/* ? */
-%token INTEGER
-%token REAL
+%token <sval> VAR
+%token <sval> ARRAY OF
+%token <sval> DOTDOT
+%token <sval> INTEGER
+%token <sval> REAL
 
 /* control flow keyword tokens */
-%token BEG END
-%token IF THEN ELSE
-%token DO WHILE
-%token FOR DOWNTO TO
-%token REPEAT UNTIL
-
+%token <sval> BEG END
+%token <sval> IF THEN ELSE
+%token <sval> DO WHILE
+%token <sval> FOR DOWNTO TO
+%token <sval> REPEAT UNTIL
 
 /* variables must also return correct value type */
-/* %type <tval> start */
-/* %type <tval> program */
-/* %type <tval> ident_list */
-/* %type <tval> decls */
-/* %type <tval> type */
-/* %type <tval> std_type */
-/* %type <tval> subprogram_decls */
-/* %type <tval> subprogram_decl */
-/* %type <tval> subprogram_head */
-/* %type <tval> args */
-/* %type <tval> param_list */
-/* %type <tval> compound_stmt */
-/* %type <tval> opt_stmts */
-/* %type <tval> stmt_list */
-/* %type <tval> stmt */
-/* %type <tval> var */
-/* %type <tval> procedure_stmt */
-/* %type <tval> expr_list */
-/* %type <tval> expr */
-/* %type <tval> simple_expr */
-/* %type <tval> term */
-/* %type <tval> factor */
+%type <tval> start
+%type <tval> program
+%type <tval> ident_list
+%type <tval> decls
+%type <tval> type
+%type <tval> std_type
+%type <tval> subprogram_decls
+%type <tval> subprogram_decl
+%type <tval> subprogram_head
+%type <tval> header
+%type <tval> param_list
+%type <tval> param
+%type <tval> compound_stmt
+%type <tval> opt_stmts
+%type <tval> stmt_list
+%type <tval> stmt
+%type <tval> var
+%type <tval> procedure_stmt
+%type <tval> expr_list
+%type <tval> expr
+%type <tval> simple_expr
+%type <tval> term
+%type <tval> factor
+%type <tval> id
 
 /* order here specifies precedence */
 %left ASSOP
@@ -93,124 +98,228 @@ int main() { yyparse(); }
 %right THEN ELSE /* choose closest if statement */
 
 /* set starting variable */
-%start program
+%start start
 
 %%
 
+start
+	: program
+		{
+			fprintf(stderr, "\n\n");
+			print_tree($1, 0);
+		}
+
 program
-	: PROGRAM IDENT '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
+	: PROGRAM id '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
+		{
+			$$ = op_tree(LISTOP, "_",
+					op_tree(LISTOP, "_", 
+						op_tree(LISTOP, ";",
+							op_tree(PARENOP, "()", $2, $4),
+						$7),
+					$8),
+				 $9);
+		}
 	;
 
 ident_list
-	: IDENT
-	| ident_list ',' IDENT
+	: id
+		{ $$ = $1; }
+	| ident_list ',' id
+		{ $$ = op_tree(LISTOP, ",", $1, $3); }
 	;
 
 decls
 	: decls VAR ident_list ':' type ';'
+		{
+			op_tree(LISTOP, ":",
+				op_tree(VAR, $2, $1, $3)
+			, $5);
+		}
 	| /* empty */
+		{ $$ = NULL; }
 	;
 
 type
 	: std_type
+		{ $$ = $1; }
 	| ARRAY '[' INUM DOTDOT INUM ']' OF std_type
+		{ 
+			$$ = str_tree(OF, $7, 
+					op_tree(ARRAYOP, "[]", str_tree(ARRAY, $1, NULL, NULL),
+						op_tree(DOTDOT, $4, int_tree(INUM, $3, NULL, NULL), int_tree(INUM, $5, NULL, NULL))
+					)
+				 , $8); 
+		}
 	;
 
 std_type
 	: INTEGER
+		{ $$ = str_tree(INTEGER, $1, NULL, NULL); }
 	| REAL
+		{ $$ = str_tree(REAL, $1, NULL, NULL); }
 	;
 
 subprogram_decls
 	: subprogram_decls subprogram_decl ';'
+		{ op_tree(LISTOP, "_", $1, $2); }
 	| /* empty */
+		{ $$ = NULL; }
 	;
 
 subprogram_decl
 	: subprogram_head decls subprogram_decls compound_stmt
+		{
+			$$ = op_tree(LISTOP, "_", $1, 
+					op_tree(LISTOP, "_", $2, 
+						op_tree(LISTOP, "_", $3, $4)
+					)
+				 );
+		}
 	;
 
 subprogram_head
-	: FUNCTION IDENT args ':' std_type ';'
-	| PROCEDURE IDENT args ';'
+	: FUNCTION header ':' std_type ';'
+		{ $$ = str_tree(FUNCTION, $1, $2, $4); }
+	| PROCEDURE header ';'
+		{ $$ = $2; }
 	;
 
-args
-	: '(' param_list ')'
+header
+	: id '(' param_list ')'
+		{ $$ = op_tree(PARENOP, "()", $1, $3); }
 	| /* empty */
+		{ $$ = NULL; }
 	;
 
 param_list
+	: param
+		{ $$ = $1; }
+	| param_list ';' param
+		{ $$ = op_tree(LISTOP, ";", $1, $3); }
+	;
+
+param
 	: ident_list ':' type
-	| param_list ';' ident_list ':' type
+		{ $$ = op_tree(LISTOP, ":", $1, $3); }
 	;
 
 compound_stmt
 	: BEG opt_stmts END
+		{ $$ = $2; }
 	;
 
 opt_stmts
 	: stmt_list
+		{ $$ = $1; }
 	| /* empty */
+		{ $$ = NULL; }
 	;
 
 stmt_list
 	: stmt
+		{ $$ = $1; }
 	| stmt_list ';' stmt
+		{ $$ = op_tree(LISTOP, ";", $1, $3); }
 	;
 
 stmt
 	: var ASSOP expr
+		{ $$ = op_tree(ASSOP, $2, $1, $3); }
 	| procedure_stmt
+		{ $$ = $1; }
 	| compound_stmt
-	| IF expr THEN stmt	
+		{ $$ = $1; }
+	| IF expr THEN stmt
+		{ $$ = str_tree(IF, "i-t", $2, $4); }
 	| IF expr THEN stmt ELSE stmt
+		{ $$ = str_tree(IF, "i-te", $2, str_tree(IF, "t-e", $4, $6)); }
 	| WHILE expr DO stmt
+		{ $$ = str_tree(WHILE, $1, $2, $4); }
 	| REPEAT stmt UNTIL expr
+		{ $$ = str_tree(REPEAT, $1, $2, $4); }
 	| FOR var ASSOP expr TO expr DO stmt
+		{
+			$$ = str_tree(FOR, $1,
+					op_tree(ASSOP, $3, $2, $4),
+					str_tree(TO, $5, $6, $8)
+				);
+		}
 	| FOR var ASSOP expr DOWNTO expr DO stmt
+		{
+			$$ = str_tree(FOR, $1,
+					op_tree(ASSOP, $3, $2, $4),
+					str_tree(DOWNTO, $5, $6, $8)
+				);
+		}
 	;
 
 var
-	: IDENT
-	| IDENT '[' expr ']'
+	: id
+		{ $$ = $1; }
+	| id '[' expr ']'
+		{ $$ = op_tree(ARRAYOP, "[]", $1, $3); }
 	;
 
 procedure_stmt
-	: IDENT
-	| IDENT '(' expr_list ')'
+	: id
+		{ $$ = $1; }
+	| id '(' expr_list ')'
+		{ $$ = op_tree(PARENOP, "()", $1, $3); }
 	;
 
 expr_list
 	: expr
+		{ $$ = $1; }
 	| expr_list ',' expr
+		{ $$ = op_tree(LISTOP, ",", $1, $3); }
 	;
 
 expr
 	: simple_expr
+		{ $$ = $1; }
 	| expr RELOP simple_expr 			/* allow multiple relops */
+		{ $$ = op_tree(RELOP, $2, $1, $3); }
 	;
 
 simple_expr
 	: term
-	| ADDOP term						/* optional sign */
+		{ $$ = $1; }
+	| ADDOP term						/* optional sign */ 
+		{ $$ = str_tree(ADDOP, $1, $2, NULL); }
 	| simple_expr ADDOP term
+		{ $$ = op_tree(ADDOP, $2, $1, $3); }
 	| STRING							/* ? */
+		{ $$ = str_tree(STRING, $1, NULL, NULL); }
 	;
 
 term
 	: factor
+		{ $$ = $1; }
 	| term MULOP factor
+		{ $$ = op_tree(MULOP, $2, $1, $3); }
 	;
 
 factor
-	: IDENT
-	| IDENT '[' expr ']'
-	| IDENT '(' expr_list ')'
+	: id
+		{ $$ = $1; }
+	| id '[' expr ']'
+		{ $$ = op_tree(ARRAYOP, "[]", $1, $3); }
+	| id '(' expr_list ')'
+		{ $$ = op_tree(PARENOP, "()", $1, $3); }
 	| INUM
+		{ $$ = int_tree(INUM, $1, NULL, NULL); }
 	| RNUM
+		{ $$ = float_tree(RNUM, $1, NULL, NULL); }
 	| '(' expr ')'
+		{ $$ = $2; }
 	| NOT factor
+		{ $$ = str_tree(NOT, $1, $2, NULL); }
+	;
+
+id
+	: IDENT
+		{ $$ = str_tree(IDENT, $1, NULL, NULL); }
 	;
 
 %%
