@@ -20,7 +20,12 @@ typedef struct tree_s {
 
 } tree_t;
 
-tree_t* make_tree(int type, tree_t *left, tree_t *right);
+tree_t* int_tree(int type, int ival, tree_t *left, tree_t *right);
+tree_t* float_tree(int type, float fval, tree_t *left, tree_t *right);
+tree_t* op_tree(int type, char* opval, tree_t *left, tree_t *right);
+tree_t* str_tree(int type, char* sval, tree_t *left, tree_t *right);
+
+
 void print_tree(tree_t *t, int spaces);
 int eval_tree(tree_t *t);
 
