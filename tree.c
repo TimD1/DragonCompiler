@@ -14,6 +14,31 @@ tree_t *int_tree(int type, int ival, tree_t *left, tree_t *right)
 	ptr->left = left;
 	ptr->right = right;
 	ptr->attribute.ival = ival;
+
+	if(DEBUG_TREE)
+	{
+		fprintf(stderr, "\nN: %p\t\t%d", ptr, ptr->attribute.ival);
+		fprintf(stderr, "\n  L: %p", ptr->left);
+		fprintf(stderr, "\n  R: %p\n", ptr->right);
+	}
+	
+	return ptr;
+}
+
+tree_t *empty_tree()
+{
+	tree_t *ptr = (tree_t *)malloc(sizeof(tree_t));
+	assert(ptr != NULL); // need better error handling than this!
+	
+	ptr->type = EMPTY;
+	ptr->left = NULL;
+	ptr->right = NULL;
+	ptr->attribute.sval = " ";
+
+	if(DEBUG_TREE)
+	{
+		fprintf(stderr, "\nE: %p\t\t%s", ptr, ptr->attribute.sval);
+	}
 	
 	return ptr;
 }
@@ -28,6 +53,13 @@ tree_t *float_tree(int type, float fval, tree_t *left, tree_t *right)
 	ptr->right = right;
 	ptr->attribute.fval = fval;
 	
+	if(DEBUG_TREE)
+	{
+		fprintf(stderr, "\nN: %p\t\t%f", ptr, ptr->attribute.fval);
+		fprintf(stderr, "\n  L: %p", ptr->left);
+		fprintf(stderr, "\n  R: %p\n", ptr->right);
+	}
+	
 	return ptr;
 }
 
@@ -40,6 +72,13 @@ tree_t *str_tree(int type, char* sval, tree_t *left, tree_t *right)
 	ptr->left = left;
 	ptr->right = right;
 	ptr->attribute.sval = strdup(sval);
+
+	if(DEBUG_TREE)
+	{
+		fprintf(stderr, "\nN: %p\t\t%s", ptr, ptr->attribute.sval);
+		fprintf(stderr, "\n  L: %p", ptr->left);
+		fprintf(stderr, "\n  R: %p\n", ptr->right);
+	}
 	
 	return ptr;
 }
@@ -53,6 +92,13 @@ tree_t *op_tree(int type, char* opval, tree_t *left, tree_t *right)
 	ptr->left = left;
 	ptr->right = right;
 	ptr->attribute.opval = strdup(opval);
+
+	if(DEBUG_TREE)
+	{
+		fprintf(stderr, "\nN: %p\t\t%s", ptr, ptr->attribute.opval);
+		fprintf(stderr, "\n  L: %p", ptr->left);
+		fprintf(stderr, "\n  R: %p\n", ptr->right);
+	}
 	
 	return ptr;
 }
@@ -105,8 +151,10 @@ void print_tree(tree_t *t, int spaces)
 		case REPEAT: 	fprintf(stderr, "[REPEAT:%s]", t->attribute.sval); break;
 		case UNTIL: 	fprintf(stderr, "[UNTIL:%s]", t->attribute.sval); break;
 
+		case EMPTY:		fprintf(stderr, "[EMPTY]"); break;
+
 		default:
-			fprintf(stderr, "[UNKNOWN]" );
+			fprintf(stderr, "[UNKNOWN]\n" );
 			exit(1);
 	}
 	fprintf(stderr, "\n");

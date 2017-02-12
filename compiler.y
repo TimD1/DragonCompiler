@@ -62,6 +62,9 @@ int main() { yyparse(); }
 %token <sval> FOR DOWNTO TO
 %token <sval> REPEAT UNTIL
 
+/* empty token */
+%token <sval> EMPTY
+
 /* variables must also return correct value type */
 %type <tval> start
 %type <tval> program
@@ -105,7 +108,7 @@ int main() { yyparse(); }
 start
 	: program
 		{
-			fprintf(stderr, "\n\n");
+			fprintf(stderr, "\n\n\nSYNTAX TREE\n___________\n\n");
 			print_tree($1, 0);
 		}
 
@@ -129,15 +132,15 @@ ident_list
 		{ $$ = op_tree(LISTOP, ",", $1, $3); }
 	;
 
-decls
+decls		/* for some reason, not taking this rule? */
 	: decls VAR ident_list ':' type ';'
 		{
-			op_tree(LISTOP, ":",
-				op_tree(VAR, $2, $1, $3)
-			, $5);
+			$$ = op_tree(LISTOP, ":",
+					op_tree(VAR, $2, $1, $3),
+				 $5);
 		}
 	| /* empty */
-		{ $$ = NULL; }
+		{ $$ = empty_tree(); }
 	;
 
 type
@@ -164,7 +167,7 @@ subprogram_decls
 	: subprogram_decls subprogram_decl ';'
 		{ op_tree(LISTOP, "_", $1, $2); }
 	| /* empty */
-		{ $$ = NULL; }
+		{ $$ = empty_tree(); }
 	;
 
 subprogram_decl
@@ -188,8 +191,8 @@ subprogram_head
 header
 	: id '(' param_list ')'
 		{ $$ = op_tree(PARENOP, "()", $1, $3); }
-	| /* empty */
-		{ $$ = NULL; }
+	| id
+		{ $$ = $1; }
 	;
 
 param_list
@@ -213,7 +216,7 @@ opt_stmts
 	: stmt_list
 		{ $$ = $1; }
 	| /* empty */
-		{ $$ = NULL; }
+		{ $$ = empty_tree(); }
 	;
 
 stmt_list

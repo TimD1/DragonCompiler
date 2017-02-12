@@ -192,11 +192,11 @@ end				{
 
  /* identifier tokens */
 {identifier}	{
-					fprintf( stderr, " [IDENT:%s]", yylval.sval = yytext );
+					fprintf( stderr, " [IDENT:%s]", yylval.sval = strdup(yytext) );
 					return IDENT;
 				}
 {string}		{
-					fprintf( stderr, " [STRING:%s]", yylval.sval = yytext );
+					fprintf( stderr, " [STRING:%s]", yylval.sval = strdup(yytext) );
 					return STRING;
 				}
 
