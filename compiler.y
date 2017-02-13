@@ -95,6 +95,8 @@ int main()
 %type <tval> term
 %type <tval> factor
 %type <tval> id
+%type <tval> inum
+%type <tval> rnum
 
 /* order here specifies precedence */
 %left ASSOP
@@ -120,13 +122,12 @@ start
 program
 	: PROGRAM id '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
 		{
-			$$ = op_tree(LISTOP, "_",
-					op_tree(LISTOP, "_", 
-						op_tree(LISTOP, ";",
-							op_tree(PARENOP, "()", $2, $4),
-						$7),
-					$8),
-				 $9);
+			$$ = str_tree(PROGRAM, "head body",
+					op_tree(PARENOP, "()", $2, $4),
+					str_tree(PROGRAM, "decls compound_stmt",
+						str_tree(PROGRAM, "decls sub_decls", $7, $8),
+					$9)
+				);
 		}
 	;
 
@@ -137,7 +138,7 @@ ident_list
 		{ $$ = op_tree(LISTOP, ",", $1, $3); }
 	;
 
-decls		/* for some reason, not taking this rule? */
+decls
 	: decls VAR ident_list ':' type ';'
 		{
 			$$ = op_tree(LISTOP, ":",
@@ -151,13 +152,11 @@ decls		/* for some reason, not taking this rule? */
 type
 	: std_type
 		{ $$ = $1; }
-	| ARRAY '[' INUM DOTDOT INUM ']' OF std_type
+	| ARRAY '[' inum DOTDOT inum ']' OF std_type
 		{ 
-			$$ = str_tree(OF, $7, 
-					op_tree(ARRAYOP, "[]", str_tree(ARRAY, $1, NULL, NULL),
-						op_tree(DOTDOT, $4, int_tree(INUM, $3, NULL, NULL), int_tree(INUM, $5, NULL, NULL))
-					)
-				 , $8); 
+			$$ = str_tree(ARRAY, "array-range type",
+					op_tree(DOTDOT, $4, $3, $5),
+				 $8);
 		}
 	;
 
@@ -188,9 +187,9 @@ subprogram_decl
 
 subprogram_head
 	: FUNCTION header ':' std_type ';'
-		{ $$ = str_tree(FUNCTION, $1, $2, $4); }
+		{ $$ = str_tree(FUNCTION, "function type", $2, $4); }
 	| PROCEDURE header ';'
-		{ $$ = $2; }
+		{ $$ = str_tree(PROCEDURE, $1, $2, empty_tree()); }
 	;
 
 header
@@ -214,7 +213,7 @@ param
 
 compound_stmt
 	: BEG opt_stmts END
-		{ $$ = $2; }
+		{ $$ = str_tree(BEG, "begin-end", $2, empty_tree()); }
 	;
 
 opt_stmts
@@ -239,25 +238,25 @@ stmt
 	| compound_stmt
 		{ $$ = $1; }
 	| IF expr THEN stmt
-		{ $$ = str_tree(IF, "i-t", $2, $4); }
+		{ $$ = str_tree(IF, "if then", $2, $4); }
 	| IF expr THEN stmt ELSE stmt
-		{ $$ = str_tree(IF, "i-te", $2, str_tree(IF, "t-e", $4, $6)); }
+		{ $$ = str_tree(IF, "if then-else", $2, str_tree(IF, "then else", $4, $6)); }
 	| WHILE expr DO stmt
-		{ $$ = str_tree(WHILE, $1, $2, $4); }
+		{ $$ = str_tree(WHILE, "while do", $2, $4); }
 	| REPEAT stmt UNTIL expr
-		{ $$ = str_tree(REPEAT, $1, $2, $4); }
+		{ $$ = str_tree(REPEAT, "repeat until", $2, $4); }
 	| FOR var ASSOP expr TO expr DO stmt
 		{
 			$$ = str_tree(FOR, $1,
 					op_tree(ASSOP, $3, $2, $4),
-					str_tree(TO, $5, $6, $8)
+					str_tree(TO, "to do", $6, $8)
 				);
 		}
 	| FOR var ASSOP expr DOWNTO expr DO stmt
 		{
 			$$ = str_tree(FOR, $1,
 					op_tree(ASSOP, $3, $2, $4),
-					str_tree(DOWNTO, $5, $6, $8)
+					str_tree(DOWNTO, "downto do", $6, $8)
 				);
 		}
 	;
@@ -294,7 +293,7 @@ simple_expr
 	: term
 		{ $$ = $1; }
 	| ADDOP term						/* optional sign */ 
-		{ $$ = str_tree(ADDOP, $1, $2, NULL); }
+		{ $$ = op_tree(ADDOP, $1, $2, empty_tree()); }
 	| simple_expr ADDOP term
 		{ $$ = op_tree(ADDOP, $2, $1, $3); }
 	| STRING							/* ? */
@@ -315,19 +314,29 @@ factor
 		{ $$ = op_tree(ARRAYOP, "[]", $1, $3); }
 	| id '(' expr_list ')'
 		{ $$ = op_tree(PARENOP, "()", $1, $3); }
-	| INUM
-		{ $$ = int_tree(INUM, $1, NULL, NULL); }
-	| RNUM
-		{ $$ = float_tree(RNUM, $1, NULL, NULL); }
+	| inum
+		{ $$ = $1; }
+	| rnum
+		{ $$ = $1; }
 	| '(' expr ')'
 		{ $$ = $2; }
 	| NOT factor
-		{ $$ = str_tree(NOT, $1, $2, NULL); }
+		{ $$ = op_tree(NOT, $1, $2, empty_tree()); }
 	;
 
 id
 	: IDENT
 		{ $$ = str_tree(IDENT, $1, NULL, NULL); }
+	;
+
+inum
+	: INUM
+		{ $$ = int_tree(INUM, $1, NULL, NULL); }
+	;
+
+rnum
+	: RNUM
+		{ $$ = float_tree(RNUM, $1, NULL, NULL); }
 	;
 
 %%
