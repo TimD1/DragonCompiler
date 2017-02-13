@@ -3,12 +3,17 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "tree.h"
+#include "hash.h"
 #include "y.tab.h"
 int yydebug = 1;
 
 int yywrap() { return 1; }
 void yyerror(const char *str) { fprintf(stderr, "error: %s\n", str); }
-int main() { yyparse(); }
+int main() 
+{ 
+	global_table = (table_t*)create_table();
+	yyparse();
+}
 %}
 
 %define parse.error verbose
