@@ -108,7 +108,7 @@ void print_tree(tree_t *t, int spaces)
 	if( t == NULL ) return;
 	
 	for(int i = 0; i < spaces; i++)
-		fprintf(stderr, " ");
+		fprintf(stderr, "| ");
 	
 	switch( t -> type ) {
 		case INUM: 		fprintf(stderr, "[INUM:%d]", t->attribute.ival); break;
@@ -159,8 +159,8 @@ void print_tree(tree_t *t, int spaces)
 	}
 	fprintf(stderr, "\n");
 	
-	print_tree(t->left, spaces+2);
-	print_tree(t->right, spaces+2);
+	print_tree(t->left, spaces+1);
+	print_tree(t->right, spaces+1);
 			
 }
 
