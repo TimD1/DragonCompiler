@@ -55,8 +55,38 @@ void pop_table()
 		return;
 	}
 
-	/* // remove linked lists of entries */
-	/* for(int i = 0; i < TABLE_SIZE; i++) */
+	// remove linked lists of entries
+	for(int i = 0; i < TABLE_SIZE; i++)
+	{
+		while(1)
+		{
+			entry_t* cur_entry = top_table->hash_table[i];
+			
+			// no entries, we're done
+			if(cur_entry == NULL)
+				break;
+			// one entry, remove it and exit
+			else if(cur_entry->next == NULL)
+			{
+				free(cur_entry);
+				cur_entry = NULL;
+				break;
+			}
+			// two or more entries, delete last
+			else
+			{
+				// get second to last entry
+				while(cur_entry->next->next != NULL)
+					cur_entry = cur_entry->next;
+				
+				// remove last entry
+				free(cur_entry->next);
+				cur_entry->next = NULL;
+			}
+
+		}
+	}
+
 
 	// adjust surrounding pointers to avoid table
 	top_table->prev->next = head_table;
