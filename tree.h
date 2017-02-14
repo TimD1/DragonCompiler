@@ -1,6 +1,7 @@
 #ifndef TREE_H
 #define TREE_H
 
+#include "hash.h"
 #define DEBUG_TREE 0
 
 /* Semantic analyzer's channel with parser */
@@ -14,6 +15,8 @@ typedef struct tree_s {
 		float fval; 
 		char *opval;	
 		char *sval;
+
+		entry_t *pval;
 	} attribute;
 
 	/* children nodes */

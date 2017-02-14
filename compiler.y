@@ -8,10 +8,21 @@
 int yydebug = 1;
 
 int yywrap() { return 1; }
+
 void yyerror(const char *str) { fprintf(stderr, "error: %s\n", str); }
+
 int main() 
 { 
-	global_table = (table_t*)create_table();
+	/* Create base table for doubly linked "stack" of all tables 
+	   tables on top have narrower scope, and prev is the top table */
+	head_table = (table_t*)malloc(sizeof(table_t));
+	for(int i = 0; i < TABLE_SIZE; i++)
+		head_table->hash_table[i] = NULL;
+	head_table->prev = head_table;
+	head_table->next = head_table;
+	head_table->id = -1;
+
+	push_table();
 	yyparse();
 }
 %}
@@ -117,31 +128,29 @@ start
 		{
 			fprintf(stderr, "\n\n\nSYNTAX TREE\n___________\n\n");
 			print_tree($1, 0);
-			print_table(global_table);
 		}
 
 program
 	: PROGRAM id '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
 		{
-			push_table();
 			$$ = str_tree(PROGRAM, "head body",
 					op_tree(PARENOP, "()", $2, $4),
 					str_tree(PROGRAM, "decls compound_stmt",
 						str_tree(PROGRAM, "decls sub_decls", $7, $8),
 					$9)
 				);
+			print_table(top_table());
+			pop_table();
 		}
 	;
 
 ident_list
 	: id
 		{
-			insert_entry($1->attribute.sval, global_table); 
 			$$ = $1;
 		}
 	| ident_list ',' id
 		{
-			insert_entry($3->attribute.sval, global_table); 
 			$$ = op_tree(LISTOP, ",", $1, $3);
 		}
 	;
@@ -191,6 +200,8 @@ subprogram_decl
 						op_tree(LISTOP, "_", $3, $4)
 					)
 				 );
+			print_table(top_table());
+			pop_table();
 		}
 	;
 
@@ -224,8 +235,6 @@ compound_stmt
 	: BEG opt_stmts END
 		{
 			$$ = str_tree(BEG, "begin-end", $2, empty_tree());
-			print_table(top_table());
-			pop_table();
 		}
 	;
 
@@ -341,7 +350,22 @@ factor
 
 id
 	: IDENT
-		{ $$ = str_tree(IDENT, $1, NULL, NULL); }
+		{
+			// TO DO: make sure this isn't overwriting an existing value
+			
+			// add identifier to current scope
+			insert_entry($1, top_table()); 
+			
+			//create leaf node with pointer to entry in hash table
+			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
+			assert(ident_leaf != NULL);
+			ident_leaf->type = IDENT;
+			ident_leaf->left = NULL;
+			ident_leaf->right = NULL;
+			ident_leaf->attribute.pval = get_entry(top_table(), $1);
+
+			$$ = ident_leaf;
+		}
 	;
 
 inum

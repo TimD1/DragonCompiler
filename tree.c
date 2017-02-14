@@ -25,6 +25,7 @@ tree_t *int_tree(int type, int ival, tree_t *left, tree_t *right)
 	return ptr;
 }
 
+
 tree_t *empty_tree()
 {
 	tree_t *ptr = (tree_t *)malloc(sizeof(tree_t));
@@ -42,6 +43,7 @@ tree_t *empty_tree()
 	
 	return ptr;
 }
+
 
 tree_t *float_tree(int type, float fval, tree_t *left, tree_t *right)
 {
@@ -63,6 +65,7 @@ tree_t *float_tree(int type, float fval, tree_t *left, tree_t *right)
 	return ptr;
 }
 
+
 tree_t *str_tree(int type, char* sval, tree_t *left, tree_t *right)
 {
 	tree_t *ptr = (tree_t *)malloc(sizeof(tree_t));
@@ -83,6 +86,7 @@ tree_t *str_tree(int type, char* sval, tree_t *left, tree_t *right)
 	return ptr;
 }
 
+
 tree_t *op_tree(int type, char* opval, tree_t *left, tree_t *right)
 {
 	tree_t *ptr = (tree_t *)malloc(sizeof(tree_t));
@@ -102,6 +106,7 @@ tree_t *op_tree(int type, char* opval, tree_t *left, tree_t *right)
 	
 	return ptr;
 }
+
 
 void print_tree(tree_t *t, int spaces)
 {
@@ -124,7 +129,7 @@ void print_tree(tree_t *t, int spaces)
 		case PARENOP: 	fprintf(stderr, "[PARENOP %s]", t->attribute.opval); break;
 		case LISTOP: 	fprintf(stderr, "[LISTOP %s]", t->attribute.opval); break;
 
-		case IDENT: 	fprintf(stderr, "[IDENT %s]", t->attribute.sval); break;
+		case IDENT: 	fprintf(stderr, "[IDENT %p]", t->attribute.sval); break;
 		case STRING: 	fprintf(stderr, "[STRING %s]", t->attribute.sval); break;
 
 		case PROGRAM: 	fprintf(stderr, "[PROGRAM %s]", t->attribute.sval); break;
@@ -163,6 +168,7 @@ void print_tree(tree_t *t, int spaces)
 	print_tree(t->right, spaces+1);
 			
 }
+
 
 int eval_tree(tree_t *t)
 {

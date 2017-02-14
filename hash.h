@@ -14,7 +14,11 @@ typedef struct entry_s {
 /* Hash table structure */
 typedef struct table_s {
 	entry_t *hash_table[ TABLE_SIZE ];
-	struct table_s *next; // effectively a stack
+	int id;
+
+	// use a double linked list as a stack
+	struct table_s *prev;
+	struct table_s *next;
 } table_t;
 
 
@@ -22,7 +26,8 @@ typedef struct table_s {
 int hashpjw(char *s);
 
 entry_t* create_entry(char* name);
-entry_t* find_entry(table_t* table, char* name);
+entry_t* get_entry(table_t* table, char* name);
+entry_t* find_entry(table_t* table, char* name); 
 int insert_entry(char* name, table_t* table);
 
 table_t* create_table();
@@ -32,6 +37,6 @@ void print_table(table_t* table);
 void pop_table();
 
 /* GLOBALS */
-extern table_t* global_table;
+extern table_t* head_table;
 
 #endif

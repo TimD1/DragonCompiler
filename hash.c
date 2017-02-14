@@ -4,8 +4,7 @@
 
 #include "hash.h"
 
-/* Create base table */
-table_t* global_table;
+table_t* head_table;
 
 /* Peter J. Weinberger's hash function, from Red Dragon Book */
 int hashpjw( char *s )
@@ -26,65 +25,61 @@ int hashpjw( char *s )
 }
 
 
-/* Create new hash table */
-table_t* create_table()
-{
-	table_t* ptr = (table_t*)malloc(sizeof(table_t));
-	for(int i = 0; i < TABLE_SIZE; i++)
-		ptr->hash_table[i] = NULL;
-	ptr->next = NULL;
-	return ptr;
-}
-
-
 /* Push new table onto the stack */
 table_t* push_table()
 {
-	table_t* ptr = create_table();
-	table_t* top_table = global_table;
-	while(top_table->next != NULL)
-		top_table = top_table->next;
-	top_table->next = ptr;
+	// create and initialize new table
+	table_t* ptr = (table_t*)malloc(sizeof(table_t));
+	for(int i = 0; i < TABLE_SIZE; i++)
+		ptr->hash_table[i] = NULL;
+
+	// set new table's pointers
+	ptr->next = head_table;
+	ptr->prev = head_table->prev;
+	ptr->id = ptr->prev->id + 1;
+
+	// adjust surrounding pointers
+	head_table->prev->next = ptr;
+	head_table->prev = ptr;
 }
 
 
-/* Pop top table from the stack,
-   assuming base global_table always exists*/
+/* Pop top table from the stack */
 void pop_table()
 {
-	table_t* top_table = global_table;
-	while(top_table->next != NULL)
-		top_table = top_table->next;
-
-	table_t* prev_table = global_table;
-	while(prev_table->next != top_table)
+	// ensure we don't pop the head of our list
+	table_t* top_table = head_table->prev;
+	if(top_table == head_table)
 	{
-		if(prev_table->next == NULL)
-		{
-			fprintf(stderr, "Cannot pop first table!");
-			return;
-		}
-		prev_table = prev_table->next;
+		fprintf(stderr, "Cannot pop head table!");
+		return;
 	}
-	// free memory to avoid leaks
-	prev_table->next = NULL;
+
+	/* // remove linked lists of entries */
+	/* for(int i = 0; i < TABLE_SIZE; i++) */
+
+	// adjust surrounding pointers to avoid table
+	top_table->prev->next = head_table;
+	head_table->prev = top_table->prev;
+
+	// remove top table
+	top_table->next = NULL;
+	top_table->prev = NULL;
+	free(top_table);
 }
 
 
 /* Return top table */
 table_t* top_table()
 {
-	table_t* top = global_table;
-	while(top->next != NULL)
-		top = top->next;
-	return top;
+	return head_table->prev;
 }	
 
 
 /* Prints the specified table */
 void print_table(table_t* table)
 {
-	fprintf(stderr, "\n\n\nHASH TABLE\n__________\n\n");
+	fprintf(stderr, "\n\nHASH TABLE %d\n_____________\n\n", table->id);
 	for(int i = 0; i < TABLE_SIZE; i++)
 	{
 		entry_t* entry = table->hash_table[i];
@@ -95,6 +90,7 @@ void print_table(table_t* table)
 			entry = entry->next;
 		}
 	}
+	fprintf(stderr, "\n\n");
 }
 
 
@@ -112,7 +108,7 @@ entry_t* create_entry(char* name)
 
 /* Given an identifier name and hash table,
    finds entry in hash table if it exists */
-entry_t* find_entry(table_t* table, char* name)
+entry_t* get_entry(table_t* table, char* name)
 {
 	entry_t* cur_entry = table->hash_table[ hashpjw(name) ];
 	while(cur_entry != NULL)
@@ -126,19 +122,41 @@ entry_t* find_entry(table_t* table, char* name)
 }
 
 
+/* Given an identifier name and hash table,
+   finds entry in hash table AND ALL OTHER
+   HASH TABLES OF GREATER SCOPE if it exists */
+entry_t* find_entry(table_t* table, char* name)
+{
+	// search all tables up to head table
+	while(table != head_table)
+	{
+		entry_t* cur_entry = table->hash_table[ hashpjw(name) ];
+		while(cur_entry != NULL)
+		{
+			if( !strcmp(name, cur_entry->name) )
+				return cur_entry;
+			else
+				cur_entry = cur_entry->next;
+		}
+		table = table->prev;
+	}
+	return NULL;
+}
+
+
 /* Given identifier name and hash table,
    create entry for identifier if it doesn't exist */
 int insert_entry(char* name, table_t* table)
 {
 	// entry already exists in table
-	if(find_entry(table, name) != NULL)
+	if(get_entry(table, name) != NULL)
 		return 0;
 
 	else // create new entry
 	{
 		entry_t* ptr = create_entry(name);
 		entry_t* last_entry = table->hash_table[hashpjw(name)];
-		// if elements in list append to end
+		// if list non-empty, append to end
 		if(last_entry != NULL)
 		{
 			while(last_entry->next != NULL)
