@@ -48,7 +48,8 @@ table_t* push_table()
 }
 
 
-/* Pop top table from the stack */
+/* Pop top table from the stack,
+   assuming base global_table always exists*/
 void pop_table()
 {
 	table_t* top_table = global_table;
@@ -65,9 +66,36 @@ void pop_table()
 		}
 		prev_table = prev_table->next;
 	}
+	// free memory to avoid leaks
 	prev_table->next = NULL;
 }
 
+
+/* Return top table */
+table_t* top_table()
+{
+	table_t* top = global_table;
+	while(top->next != NULL)
+		top = top->next;
+	return top;
+}	
+
+
+/* Prints the specified table */
+void print_table(table_t* table)
+{
+	fprintf(stderr, "\n\n\nHASH TABLE\n__________\n\n");
+	for(int i = 0; i < TABLE_SIZE; i++)
+	{
+		entry_t* entry = table->hash_table[i];
+		while(entry != NULL)
+		{
+			fprintf(stderr, "%d:\t%s = %d\n", i, entry->name, entry->value);
+			
+			entry = entry->next;
+		}
+	}
+}
 
 
 /* Allocate memory for new hash table entry,
@@ -76,6 +104,8 @@ entry_t* create_entry(char* name)
 {
 	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
 	ptr->name = strdup(name);
+	ptr->next = NULL;
+	ptr->value = 0;
 	return ptr;
 }
 
@@ -87,7 +117,7 @@ entry_t* find_entry(table_t* table, char* name)
 	entry_t* cur_entry = table->hash_table[ hashpjw(name) ];
 	while(cur_entry != NULL)
 	{
-		if( strcmp(name, cur_entry->name) )
+		if( !strcmp(name, cur_entry->name) )
 			return cur_entry;
 		else
 			cur_entry = cur_entry->next;
@@ -107,9 +137,18 @@ int insert_entry(char* name, table_t* table)
 	else // create new entry
 	{
 		entry_t* ptr = create_entry(name);
-		entry_t* next_entry = table->hash_table[hashpjw(name)];
-		while(next_entry != NULL) next_entry = next_entry->next;
-		next_entry = ptr;
+		entry_t* last_entry = table->hash_table[hashpjw(name)];
+		// if elements in list append to end
+		if(last_entry != NULL)
+		{
+			while(last_entry->next != NULL)
+				last_entry = last_entry->next;
+			last_entry->next = ptr;
+		}
+		else // create start of list
+		{
+			table->hash_table[hashpjw(name)] = ptr;
+		}
 		return 1;
 	}
 }

@@ -111,45 +111,45 @@ void print_tree(tree_t *t, int spaces)
 		fprintf(stderr, "| ");
 	
 	switch( t -> type ) {
-		case INUM: 		fprintf(stderr, "[INUM:%d]", t->attribute.ival); break;
-		case RNUM: 		fprintf(stderr, "[RNUM:%f]", t->attribute.fval); break;
+		case INUM: 		fprintf(stderr, "[INUM %d]", t->attribute.ival); break;
+		case RNUM: 		fprintf(stderr, "[RNUM %f]", t->attribute.fval); break;
 
-		case ADDOP: 	fprintf(stderr, "[ADDOP:%s]", t->attribute.opval); break;
-		case MULOP: 	fprintf(stderr, "[MULOP:%s]", t->attribute.opval); break;
-		case RELOP: 	fprintf(stderr, "[RELOP:%s]", t->attribute.opval); break;
-		case ASSOP: 	fprintf(stderr, "[ASSOP:%s]", t->attribute.opval); break;
-		case NOT: 		fprintf(stderr, "[NOT:%s]", t->attribute.opval); break;
+		case ADDOP: 	fprintf(stderr, "[ADDOP %s]", t->attribute.opval); break;
+		case MULOP: 	fprintf(stderr, "[MULOP %s]", t->attribute.opval); break;
+		case RELOP: 	fprintf(stderr, "[RELOP %s]", t->attribute.opval); break;
+		case ASSOP: 	fprintf(stderr, "[ASSOP %s]", t->attribute.opval); break;
+		case NOT: 		fprintf(stderr, "[NOT %s]", t->attribute.opval); break;
 		
-		case ARRAYOP: 	fprintf(stderr, "[ARRAYOP:%s]", t->attribute.opval); break;
-		case PARENOP: 	fprintf(stderr, "[PARENOP:%s]", t->attribute.opval); break;
-		case LISTOP: 	fprintf(stderr, "[LISTOP:%s]", t->attribute.opval); break;
+		case ARRAYOP: 	fprintf(stderr, "[ARRAYOP %s]", t->attribute.opval); break;
+		case PARENOP: 	fprintf(stderr, "[PARENOP %s]", t->attribute.opval); break;
+		case LISTOP: 	fprintf(stderr, "[LISTOP %s]", t->attribute.opval); break;
 
-		case IDENT: 	fprintf(stderr, "[IDENT:%s]", t->attribute.sval); break;
-		case STRING: 	fprintf(stderr, "[STRING:%s]", t->attribute.sval); break;
+		case IDENT: 	fprintf(stderr, "[IDENT %s]", t->attribute.sval); break;
+		case STRING: 	fprintf(stderr, "[STRING %s]", t->attribute.sval); break;
 
-		case PROGRAM: 	fprintf(stderr, "[PROGRAM:%s]", t->attribute.sval); break;
-		case FUNCTION: 	fprintf(stderr, "[FUNCTION:%s]", t->attribute.sval); break;
-		case PROCEDURE: fprintf(stderr, "[PROCEDURE:%s]", t->attribute.sval); break;
+		case PROGRAM: 	fprintf(stderr, "[PROGRAM %s]", t->attribute.sval); break;
+		case FUNCTION: 	fprintf(stderr, "[FUNCTION %s]", t->attribute.sval); break;
+		case PROCEDURE: fprintf(stderr, "[PROCEDURE %s]", t->attribute.sval); break;
 
-		case VAR: 		fprintf(stderr, "[VAR:%s]", t->attribute.sval); break;
-		case ARRAY: 	fprintf(stderr, "[ARRAY:%s]", t->attribute.sval); break;
-		case OF: 		fprintf(stderr, "[OF:%s]", t->attribute.sval); break;
-		case DOTDOT: 	fprintf(stderr, "[DOTDOT:%s]", t->attribute.sval); break;
-		case INTEGER: 	fprintf(stderr, "[INTEGER:%s]", t->attribute.sval); break;
-		case REAL: 		fprintf(stderr, "[REAL:%s]", t->attribute.sval); break;
+		case VAR: 		fprintf(stderr, "[VAR %s]", t->attribute.sval); break;
+		case ARRAY: 	fprintf(stderr, "[ARRAY %s]", t->attribute.sval); break;
+		case OF: 		fprintf(stderr, "[OF %s]", t->attribute.sval); break;
+		case DOTDOT: 	fprintf(stderr, "[DOTDOT %s]", t->attribute.sval); break;
+		case INTEGER: 	fprintf(stderr, "[INTEGER %s]", t->attribute.sval); break;
+		case REAL: 		fprintf(stderr, "[REAL %s]", t->attribute.sval); break;
 
-		case BEG: 		fprintf(stderr, "[BEG:%s]", t->attribute.sval); break;
-		case END: 		fprintf(stderr, "[END:%s]", t->attribute.sval); break;
-		case IF: 		fprintf(stderr, "[IF:%s]", t->attribute.sval); break;
-		case THEN: 		fprintf(stderr, "[THEN:%s]", t->attribute.sval); break;
-		case ELSE: 		fprintf(stderr, "[ELSE:%s]", t->attribute.sval); break;
-		case DO: 		fprintf(stderr, "[DO:%s]", t->attribute.sval); break;
-		case WHILE: 	fprintf(stderr, "[WHILE:%s]", t->attribute.sval); break;
-		case FOR: 		fprintf(stderr, "[FOR:%s]", t->attribute.sval); break;
-		case DOWNTO: 	fprintf(stderr, "[DOWNTO:%s]", t->attribute.sval); break;
-		case TO: 		fprintf(stderr, "[TO:%s]", t->attribute.sval); break;
-		case REPEAT: 	fprintf(stderr, "[REPEAT:%s]", t->attribute.sval); break;
-		case UNTIL: 	fprintf(stderr, "[UNTIL:%s]", t->attribute.sval); break;
+		case BEG: 		fprintf(stderr, "[BEG %s]", t->attribute.sval); break;
+		case END: 		fprintf(stderr, "[END %s]", t->attribute.sval); break;
+		case IF: 		fprintf(stderr, "[IF %s]", t->attribute.sval); break;
+		case THEN: 		fprintf(stderr, "[THEN %s]", t->attribute.sval); break;
+		case ELSE: 		fprintf(stderr, "[ELSE %s]", t->attribute.sval); break;
+		case DO: 		fprintf(stderr, "[DO %s]", t->attribute.sval); break;
+		case WHILE: 	fprintf(stderr, "[WHILE %s]", t->attribute.sval); break;
+		case FOR: 		fprintf(stderr, "[FOR %s]", t->attribute.sval); break;
+		case DOWNTO: 	fprintf(stderr, "[DOWNTO %s]", t->attribute.sval); break;
+		case TO: 		fprintf(stderr, "[TO %s]", t->attribute.sval); break;
+		case REPEAT: 	fprintf(stderr, "[REPEAT %s]", t->attribute.sval); break;
+		case UNTIL: 	fprintf(stderr, "[UNTIL %s]", t->attribute.sval); break;
 
 		case EMPTY:		fprintf(stderr, "[EMPTY]"); break;
 
@@ -178,18 +178,18 @@ int eval_tree(tree_t *t)
 		case ADDOP:
 			lvalue = eval_tree( t->left );
 			rvalue = eval_tree( t->right );
-			if( strcmp(t->attribute.opval, "+") ) {
+			if( !strcmp(t->attribute.opval, "+") ) {
 				return lvalue + rvalue;
-			} else if ( strcmp(t->attribute.opval, "-") ) {
+			} else if ( !strcmp(t->attribute.opval, "-") ) {
 				return lvalue - rvalue;
 			}
 			else assert(0);
 		case MULOP:
 			lvalue = eval_tree( t->left );
 			rvalue = eval_tree( t->right );
-			if( strcmp(t->attribute.opval, "*") ) {
+			if( !strcmp(t->attribute.opval, "*") ) {
 				return lvalue * rvalue;
-			} else if ( strcmp(t->attribute.opval, "/") ) {
+			} else if ( !strcmp(t->attribute.opval, "/") ) {
 				return lvalue / rvalue;
 			}
 			else assert(0);

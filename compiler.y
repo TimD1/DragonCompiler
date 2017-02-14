@@ -117,11 +117,13 @@ start
 		{
 			fprintf(stderr, "\n\n\nSYNTAX TREE\n___________\n\n");
 			print_tree($1, 0);
+			print_table(global_table);
 		}
 
 program
 	: PROGRAM id '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
 		{
+			push_table();
 			$$ = str_tree(PROGRAM, "head body",
 					op_tree(PARENOP, "()", $2, $4),
 					str_tree(PROGRAM, "decls compound_stmt",
@@ -133,9 +135,15 @@ program
 
 ident_list
 	: id
-		{ $$ = $1; }
+		{
+			insert_entry($1->attribute.sval, global_table); 
+			$$ = $1;
+		}
 	| ident_list ',' id
-		{ $$ = op_tree(LISTOP, ",", $1, $3); }
+		{
+			insert_entry($3->attribute.sval, global_table); 
+			$$ = op_tree(LISTOP, ",", $1, $3);
+		}
 	;
 
 decls
@@ -177,6 +185,7 @@ subprogram_decls
 subprogram_decl
 	: subprogram_head decls subprogram_decls compound_stmt
 		{
+			push_table();
 			$$ = op_tree(LISTOP, "_", $1, 
 					op_tree(LISTOP, "_", $2, 
 						op_tree(LISTOP, "_", $3, $4)
@@ -213,7 +222,11 @@ param
 
 compound_stmt
 	: BEG opt_stmts END
-		{ $$ = str_tree(BEG, "begin-end", $2, empty_tree()); }
+		{
+			$$ = str_tree(BEG, "begin-end", $2, empty_tree());
+			print_table(top_table());
+			pop_table();
+		}
 	;
 
 opt_stmts
@@ -232,7 +245,9 @@ stmt_list
 
 stmt
 	: var ASSOP expr
-		{ $$ = op_tree(ASSOP, $2, $1, $3); }
+		{ 
+			$$ = op_tree(ASSOP, $2, $1, $3);
+		}
 	| procedure_stmt
 		{ $$ = $1; }
 	| compound_stmt

@@ -27,6 +27,8 @@ int insert_entry(char* name, table_t* table);
 
 table_t* create_table();
 table_t* push_table();
+table_t* top_table();
+void print_table(table_t* table);
 void pop_table();
 
 /* GLOBALS */
