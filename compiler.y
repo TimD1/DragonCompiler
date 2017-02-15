@@ -22,7 +22,6 @@ int main()
 	head_table->next = head_table;
 	head_table->id = -1;
 
-	push_table();
 	yyparse();
 }
 %}
@@ -106,6 +105,7 @@ int main()
 %type <tval> term
 %type <tval> factor
 %type <tval> id
+%type <tval> fn
 %type <tval> inum
 %type <tval> rnum
 
@@ -131,13 +131,13 @@ start
 		}
 
 program
-	: PROGRAM id '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
+	: PROGRAM fn { push_table(); } '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
 		{
 			$$ = str_tree(PROGRAM, "head body",
-					op_tree(PARENOP, "()", $2, $4),
+					op_tree(PARENOP, "()", $2, $5),
 					str_tree(PROGRAM, "decls compound_stmt",
-						str_tree(PROGRAM, "decls sub_decls", $7, $8),
-					$9)
+						str_tree(PROGRAM, "decls sub_decls", $8, $9),
+					$10)
 				);
 			print_table(top_table());
 			pop_table();
@@ -145,13 +145,35 @@ program
 	;
 
 ident_list
-	: id
+	: IDENT
 		{
-			$$ = $1;
+			// add identifier to current scope
+			insert_entry($1, top_table()); 
+			
+			//create leaf node with pointer to entry in hash table
+			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
+			assert(ident_leaf != NULL);
+			ident_leaf->type = IDENT;
+			ident_leaf->left = NULL;
+			ident_leaf->right = NULL;
+			ident_leaf->attribute.pval = get_entry(top_table(), $1);
+
+			$$ = ident_leaf;
 		}
-	| ident_list ',' id
+	| ident_list ',' IDENT
 		{
-			$$ = op_tree(LISTOP, ",", $1, $3);
+			// add identifier to current scope
+			insert_entry($3, top_table()); 
+			
+			//create leaf node with pointer to entry in hash table
+			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
+			assert(ident_leaf != NULL);
+			ident_leaf->type = IDENT;
+			ident_leaf->left = NULL;
+			ident_leaf->right = NULL;
+			ident_leaf->attribute.pval = get_entry(top_table(), $3);
+			
+			$$ = op_tree(LISTOP, ",", $1, ident_leaf);
 		}
 	;
 
@@ -194,7 +216,6 @@ subprogram_decls
 subprogram_decl
 	: subprogram_head decls subprogram_decls compound_stmt
 		{
-			push_table();
 			$$ = op_tree(LISTOP, "_", $1, 
 					op_tree(LISTOP, "_", $2, 
 						op_tree(LISTOP, "_", $3, $4)
@@ -213,9 +234,9 @@ subprogram_head
 	;
 
 header
-	: id '(' param_list ')'
-		{ $$ = op_tree(PARENOP, "()", $1, $3); }
-	| id
+	: fn { push_table(); } '(' param_list ')'
+		{ $$ = op_tree(PARENOP, "()", $1, $4); }
+	| fn { push_table(); }
 		{ $$ = $1; }
 	;
 
@@ -351,8 +372,21 @@ factor
 id
 	: IDENT
 		{
-			// TO DO: make sure this isn't overwriting an existing value
-			
+			//create leaf node with pointer to entry in hash table
+			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
+			assert(ident_leaf != NULL);
+			ident_leaf->type = IDENT;
+			ident_leaf->left = NULL;
+			ident_leaf->right = NULL;
+			ident_leaf->attribute.pval = get_entry(top_table(), $1);
+
+			$$ = ident_leaf;
+		}
+	;
+
+fn
+	: IDENT
+		{
 			// add identifier to current scope
 			insert_entry($1, top_table()); 
 			
@@ -366,7 +400,6 @@ id
 
 			$$ = ident_leaf;
 		}
-	;
 
 inum
 	: INUM

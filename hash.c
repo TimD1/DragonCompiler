@@ -115,7 +115,7 @@ void print_table(table_t* table)
 		entry_t* entry = table->hash_table[i];
 		while(entry != NULL)
 		{
-			fprintf(stderr, "%d:\t%s = %d\n", i, entry->name, entry->value);
+			fprintf(stderr, "%d:\t%p\t%s = %d\n", i, entry, entry->name, entry->value);
 			
 			entry = entry->next;
 		}
@@ -174,7 +174,7 @@ entry_t* find_entry(table_t* table, char* name)
 }
 
 
-/* Given identifier name and hash table,
+/* Given identifier name, type, and hash table,
    create entry for identifier if it doesn't exist */
 int insert_entry(char* name, table_t* table)
 {
