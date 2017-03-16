@@ -147,31 +147,19 @@ program
 ident_list
 	: IDENT
 		{
-			// add identifier to current scope
-			insert_entry($1, top_table()); 
-			
-			//create leaf node with pointer to entry in hash table
-			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
-			assert(ident_leaf != NULL);
-			ident_leaf->type = IDENT;
-			ident_leaf->left = NULL;
-			ident_leaf->right = NULL;
-			ident_leaf->attribute.pval = get_entry(top_table(), $1);
+			// create table entry, add to table, generate tree leaf node
+			entry_t* ptr = create_entry($1, IDK, 0, 0.0, NULL, 0, NULL, IDK);
+			insert_entry(ptr, top_table()); 
+			tree_t *ident_leaf = entry_tree(IDENT, ptr);
 
 			$$ = ident_leaf;
 		}
 	| ident_list ',' IDENT
 		{
-			// add identifier to current scope
-			insert_entry($3, top_table()); 
-			
-			//create leaf node with pointer to entry in hash table
-			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
-			assert(ident_leaf != NULL);
-			ident_leaf->type = IDENT;
-			ident_leaf->left = NULL;
-			ident_leaf->right = NULL;
-			ident_leaf->attribute.pval = get_entry(top_table(), $3);
+			// create table entry, add to table, generate tree leaf node
+			entry_t* ptr = create_entry($3, IDK, 0, 0.0, NULL, 0, NULL, IDK);
+			insert_entry(ptr, top_table()); 
+			tree_t *ident_leaf = entry_tree(IDENT, ptr);
 			
 			$$ = op_tree(LISTOP, ",", $1, ident_leaf);
 		}
@@ -372,13 +360,10 @@ factor
 id
 	: IDENT
 		{
-			//create leaf node with pointer to entry in hash table
-			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
-			assert(ident_leaf != NULL);
-			ident_leaf->type = IDENT;
-			ident_leaf->left = NULL;
-			ident_leaf->right = NULL;
-			ident_leaf->attribute.pval = get_entry(top_table(), $1);
+			// create table entry, add to table, generate tree leaf node
+			entry_t* ptr = create_entry($1, IDK, 0, 0.0, NULL, 0, NULL, IDK);
+			insert_entry(ptr, top_table()); 
+			tree_t *ident_leaf = entry_tree(IDENT, ptr);
 
 			$$ = ident_leaf;
 		}
@@ -387,17 +372,11 @@ id
 fn
 	: IDENT
 		{
-			// add identifier to current scope
-			insert_entry($1, top_table()); 
+			// create table entry, add to table, generate tree leaf node
+			entry_t* ptr = create_entry($1, IDK, 0, 0.0, NULL, 0, NULL, IDK);
+			insert_entry(ptr, top_table()); 
+			tree_t *ident_leaf = entry_tree(IDENT, ptr);
 			
-			//create leaf node with pointer to entry in hash table
-			tree_t *ident_leaf = (tree_t *)malloc(sizeof(tree_t));
-			assert(ident_leaf != NULL);
-			ident_leaf->type = IDENT;
-			ident_leaf->left = NULL;
-			ident_leaf->right = NULL;
-			ident_leaf->attribute.pval = get_entry(top_table(), $1);
-
 			$$ = ident_leaf;
 		}
 

@@ -28,6 +28,7 @@ tree_t* int_tree(int type, int ival, tree_t *left, tree_t *right);
 tree_t* float_tree(int type, float fval, tree_t *left, tree_t *right);
 tree_t* op_tree(int type, char* opval, tree_t *left, tree_t *right);
 tree_t* str_tree(int type, char* sval, tree_t *left, tree_t *right);
+tree_t* entry_tree(int type, entry_t* pval);
 tree_t* empty_tree();
 
 

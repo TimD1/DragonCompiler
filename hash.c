@@ -68,6 +68,8 @@ void pop_table()
 			// one entry, remove it and exit
 			else if(cur_entry->next == NULL)
 			{
+				free(cur_entry->entry_name);
+				free(cur_entry->arg_types);
 				free(cur_entry);
 				cur_entry = NULL;
 				break;
@@ -80,6 +82,8 @@ void pop_table()
 					cur_entry = cur_entry->next;
 				
 				// remove last entry
+				free(cur_entry->next->entry_name);
+				free(cur_entry->next->arg_types);
 				free(cur_entry->next);
 				cur_entry->next = NULL;
 			}
@@ -115,8 +119,24 @@ void print_table(table_t* table)
 		entry_t* entry = table->hash_table[i];
 		while(entry != NULL)
 		{
-			fprintf(stderr, "%d:\t%p\t%s = %d\n", i, entry, entry->name, entry->value);
-			
+			switch(entry->entry_type)
+			{
+		case INT:
+			fprintf(stderr, "%d:\t%p\t%s = %d\n", i, entry, entry->entry_name, entry->entry_value.ival);
+			break;
+		case FLT:
+			fprintf(stderr, "%d:\t%p\t%s = %f\n", i, entry, entry->entry_name, entry->entry_value.fval);
+			break;
+		case STR:
+			fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, entry->entry_value.sval);
+			break;
+		case IDK:
+			fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, "type unknown");
+			break;
+		default:
+			fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, "none");
+			break;
+			}
 			entry = entry->next;
 		}
 	}
@@ -124,26 +144,44 @@ void print_table(table_t* table)
 }
 
 
-/* Allocate memory for new hash table entry,
- 	and return pointer to it */
-entry_t* create_entry(char* name)
+/* Allocate memory for new hash table entry, and return pointer */
+entry_t* create_entry(char* name, type entry_type, int entry_ival, float entry_fval, char* entry_sval, int arg_num, type* arg_types, type return_type)
 {
 	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
-	ptr->name = strdup(name);
+	ptr->entry_name = strdup(name);
+	ptr->entry_type = entry_type;
+	switch(entry_type)
+	{
+	case INT:
+		ptr-> entry_value.ival = entry_ival;
+		break;
+	case FLT:
+		ptr-> entry_value.fval = entry_fval;
+		break;
+	case STR:
+		ptr-> entry_value.sval = strdup(entry_sval);
+		break;
+	default:
+		break;
+	}
+	ptr->arg_num = arg_num;
+	ptr->arg_types = (type*)malloc(arg_num*sizeof(type));
+	memcpy(ptr->arg_types, arg_types, arg_num*sizeof(type));
+	ptr->return_type = return_type;
 	ptr->next = NULL;
-	ptr->value = 0;
 	return ptr;
 }
 
 
 /* Given an identifier name and hash table,
    finds entry in hash table if it exists */
+// shouldn't just test name
 entry_t* get_entry(table_t* table, char* name)
 {
 	entry_t* cur_entry = table->hash_table[ hashpjw(name) ];
 	while(cur_entry != NULL)
 	{
-		if( !strcmp(name, cur_entry->name) )
+		if( !strcmp(name, cur_entry->entry_name) )
 			return cur_entry;
 		else
 			cur_entry = cur_entry->next;
@@ -155,6 +193,7 @@ entry_t* get_entry(table_t* table, char* name)
 /* Given an identifier name and hash table,
    finds entry in hash table AND ALL OTHER
    HASH TABLES OF GREATER SCOPE if it exists */
+// shouldn't just test name
 entry_t* find_entry(table_t* table, char* name)
 {
 	// search all tables up to head table
@@ -163,7 +202,7 @@ entry_t* find_entry(table_t* table, char* name)
 		entry_t* cur_entry = table->hash_table[ hashpjw(name) ];
 		while(cur_entry != NULL)
 		{
-			if( !strcmp(name, cur_entry->name) )
+			if( !strcmp(name, cur_entry->entry_name) )
 				return cur_entry;
 			else
 				cur_entry = cur_entry->next;
@@ -174,28 +213,27 @@ entry_t* find_entry(table_t* table, char* name)
 }
 
 
-/* Given identifier name, type, and hash table,
-   create entry for identifier if it doesn't exist */
-int insert_entry(char* name, table_t* table)
+/* Given previously created entry and hash table,
+   insert entry into hash table if not already there */
+int insert_entry(entry_t* entry_ptr, table_t* table)
 {
 	// entry already exists in table
-	if(get_entry(table, name) != NULL)
+	if(get_entry(table, entry_ptr->entry_name) != NULL)
 		return 0;
 
 	else // create new entry
 	{
-		entry_t* ptr = create_entry(name);
-		entry_t* last_entry = table->hash_table[hashpjw(name)];
+		entry_t* last_entry = table->hash_table[ hashpjw(entry_ptr->entry_name) ];
 		// if list non-empty, append to end
 		if(last_entry != NULL)
 		{
 			while(last_entry->next != NULL)
 				last_entry = last_entry->next;
-			last_entry->next = ptr;
+			last_entry->next = entry_ptr;
 		}
 		else // create start of list
 		{
-			table->hash_table[hashpjw(name)] = ptr;
+			table->hash_table[hashpjw(entry_ptr->entry_name)] = entry_ptr;
 		}
 		return 1;
 	}

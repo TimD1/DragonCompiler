@@ -1,6 +1,5 @@
 %{
 /* negative numbers */
-/* which types of comments to use? */
 /* strings? not handled right */
 #include <stdio.h>
 #include <stdlib.h>
