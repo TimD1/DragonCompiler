@@ -61,7 +61,6 @@ int main()
 /* general keyword tokens */
 %token <sval> PROGRAM
 %token <sval> FUNCTION
-%token <sval> METHOD
 %token <sval> PROCEDURE
 
 /* variable and array keyword tokens */
@@ -141,6 +140,7 @@ program
 					$10)
 				);
 			make_vars($8);
+			add_io($5);
 			print_table(top_table());
 			pop_table();
 		}
@@ -207,6 +207,7 @@ subprogram_decl
 						op_tree(LISTOP, "_", $3, $4)
 					)
 				 );
+			make_vars($2);
 			print_table(top_table());
 			pop_table();
 		}
@@ -221,14 +222,17 @@ subprogram_head
 
 header
 	: fn { push_table(); } '(' param_list ')'
-		{ $$ = op_tree(PARENOP, "()", $1, $4); }
+		{ 
+			$$ = op_tree(PARENOP, "()", $1, $4);
+			add_params($4);
+		}
 	| fn { push_table(); }
 		{ $$ = $1; }
 	;
 
 param_list
 	: param
-		{ $$ = $1; }
+		{ $$ = op_tree(LISTOP, ";", empty_tree(), $1); }
 	| param_list ';' param
 		{ $$ = op_tree(LISTOP, ";", $1, $3); }
 	;

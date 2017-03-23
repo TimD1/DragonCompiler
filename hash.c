@@ -123,21 +123,59 @@ void print_table(table_t* table)
 		entry_t* entry = table->hash_table[i];
 		while(entry != NULL)
 		{
-			switch(entry->return_type)
+			
+			if(entry->entry_class == ARRAY)
 			{
-			case INUM:
-				fprintf(stderr, "%s\t%s\t%s\t%d\t\t%d\n", entry->entry_name, class_string(entry->entry_class), type_string(entry->return_type), entry->entry_value.ival, entry->arg_num);
-				break;
-			case RNUM:
-				fprintf(stderr, "%s\t%s\t%s\t%f\t%d\n", entry->entry_name, class_string(entry->entry_class), type_string(entry->return_type), entry->entry_value.fval, entry->arg_num);
-				break;
-			case STRING:
-				fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", entry->entry_name, class_string(entry->entry_class), type_string(entry->return_type), entry->entry_value.sval, entry->arg_num);
-				break;
-			default:
-				fprintf(stderr, "%s\t%s\t%s\t%s\t%d\n", entry->entry_name, "unknown", 
-					"none", "unknown", entry->arg_num);
-				break;
+				switch(entry->return_type)
+				{
+				case INUM:
+					fprintf(stderr, "%s\t%s\t%s\t%p\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), entry->entry_value.aival, 
+						entry->arg_num);
+					break;
+				case RNUM:
+					fprintf(stderr, "%s\t%s\t%s\t%p\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), entry->entry_value.afval, 
+						entry->arg_num);
+				}
+			}
+			
+			else
+			{
+				switch(entry->return_type)
+				{
+				case INUM:
+					fprintf(stderr, "%s\t%s\t%s\t%d\t\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), entry->entry_value.ival, 
+						entry->arg_num);
+					break;
+				case RNUM:
+					fprintf(stderr, "%s\t%s\t%s\t%f\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), entry->entry_value.fval, 
+						entry->arg_num);
+					break;
+				case STRING:
+					fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), entry->entry_value.sval, 
+						entry->arg_num);
+					break;
+				case PROGRAM:
+					fprintf(stderr, "%s\t%s\t%s\t%d\t\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), entry->entry_value.ival, 
+						entry->arg_num);
+					break;
+				default:
+					fprintf(stderr, "%s\t%s\t%s\t%s\t%d\n", 
+						entry->entry_name, "unknown", "none", "unknown", 
+						entry->arg_num);
+					break;
+				}
 			}
 			entry = entry->next;
 		}
@@ -157,6 +195,8 @@ char* type_string(int token)
 			return "int";
 		case STRING:
 			return "string";
+		case PROGRAM:
+			return "i/o";
 		default:
 			return "other";
 	}
@@ -366,6 +406,104 @@ void make_vars(tree_t* decl_ptr)
 }
 
 
+/* Inserts "input" and/or "output" into top table
+   if specified as a parameter to the main function */
+void add_io(tree_t* ident_list_ptr)
+{
+	while(ident_list_ptr->type == LISTOP)
+	{
+		char* io_option = ident_list_ptr->right->attribute.sval;
+		make_var_io(io_option);
+
+		ident_list_ptr = ident_list_ptr->left;
+	}
+}
+
+
+/* Given pointer to "param_list" in syntax tree, traverse and insert all 
+   following variables into the current scope.
+*/
+void add_params(tree_t* param_ptr)
+{
+	// while there are more types of variables
+	while(param_ptr->type != EMPTY)
+	{
+		int var_type = 0;
+		int var_class = 0;
+		int start_idx = 0;
+		int stop_idx = 0;
+
+		// determine and store type info
+		tree_t* type_ptr = param_ptr->right->right;
+		if(type_ptr->type == ARRAY) // handle arrays
+		{
+			var_class = ARRAY;
+			var_type = type_ptr->right->type;
+			
+			type_ptr = type_ptr->left;
+			if(type_ptr->type != DOTDOT)
+			{
+				fprintf(stderr, "Parameter array index missing DOTDOT");
+				exit(0);
+			}
+
+			if(type_ptr->left->type != INUM || type_ptr->right->type != INUM)
+			{
+				fprintf(stderr, "Parameter array indices must be integer values.");
+				exit(0);
+			}
+			start_idx = type_ptr->left->attribute.ival;
+			stop_idx = type_ptr->right->attribute.ival;
+		}
+		else // handle basic types
+		{
+			var_class = VAR; // PARAM_VAR?
+			var_type = type_ptr->type;
+		}
+
+
+		//while there are more identifiers of this type
+		tree_t* var_ptr = param_ptr->right->left;
+		while(var_ptr->type == LISTOP)
+		{
+			char* var_name = var_ptr->right->attribute.sval;
+			switch(var_class)
+			{
+			case VAR:
+				switch(var_type)
+				{
+				case INTEGER:
+					make_var_inum(var_name);
+					break;
+				case REAL:
+					make_var_rnum(var_name);
+					break;
+				default:
+					fprintf(stderr, "Invalid param type, must be integer or real.");
+					exit(0);
+				}
+			case ARRAY:
+				switch(var_type)
+				{
+				case INTEGER:
+					make_arr_inum(var_name, start_idx, stop_idx);
+					break;
+				case REAL:
+					make_arr_rnum(var_name, start_idx, stop_idx);
+					break;
+				default:
+					fprintf(stderr, "Invalid param type, must be integer or real.");
+					exit(0);
+				}
+			}
+			var_ptr = var_ptr->left;
+		}
+
+		param_ptr = param_ptr->left;
+	}
+}
+
+
 void make_var_inum(char* name)
 {
 	int default_ival = 0;
@@ -376,6 +514,28 @@ void make_var_inum(char* name)
 	ptr->entry_class = VAR;
 	ptr->return_type = INUM;
 	ptr->entry_value.ival = default_ival;
+	ptr->next = NULL;
+
+	// not applicable
+	ptr->arg_num = 0;
+	ptr->arg_types = NULL;
+	ptr->start_idx = 0;
+	ptr->stop_idx = 0;
+
+	insert_entry(ptr, top_table());
+}
+
+
+void make_var_io(char* name)
+{
+	int default_ioval = 0;
+
+	// set applicable values
+	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
+	ptr->entry_name = strdup(name);
+	ptr->entry_class = VAR;
+	ptr->return_type = PROGRAM;
+	ptr->entry_value.ival = default_ioval;
 	ptr->next = NULL;
 
 	// not applicable

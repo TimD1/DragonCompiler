@@ -53,6 +53,9 @@ char* type_string(int token);
 char* class_string(int token);
 
 void make_vars(tree_t* var_ptr);
+void add_io(tree_t* ident_list_ptr);
+void add_params(tree_t* param_ptr);
+void make_var_io(char* name);
 void make_var_inum(char* name);
 void make_var_rnum(char* name);
 void make_arr_inum(char* name, int start_idx, int stop_idx);
