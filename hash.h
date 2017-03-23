@@ -51,10 +51,17 @@ int hashpjw(char *s);
 
 char* type_string(int token);
 char* class_string(int token);
+int num_keyword_to_type(int token);
 
 void make_vars(tree_t* var_ptr);
 void add_io(tree_t* ident_list_ptr);
 void add_params(tree_t* param_ptr);
+void make_function(tree_t* fn_ptr);
+int count_args(tree_t* arg_ptr);
+int* get_args(tree_t* arg_ptr, int arg_num);
+
+entry_t* make_entry( char* entry_name, int entry_class, value* val_ptr, int return_type, int arg_num, int* arg_types, int start_idx, int stop_idx);
+
 void make_var_io(char* name);
 void make_var_inum(char* name);
 void make_var_rnum(char* name);

@@ -7,6 +7,7 @@
 #include "y.tab.h"
 
 table_t* head_table;
+// didn't use strdup in many places, dependent on syntax tree staying
 
 /* Peter J. Weinberger's hash function, from Red Dragon Book */
 int hashpjw( char *s )
@@ -124,8 +125,33 @@ void print_table(table_t* table)
 		while(entry != NULL)
 		{
 			
-			if(entry->entry_class == ARRAY)
+			switch(entry->entry_class)
 			{
+			case FUNCTION:
+				switch(entry->return_type)
+				{
+				case INUM:
+					fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), "none", entry->arg_num);
+					break;
+				case RNUM:
+					fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", 
+						entry->entry_name, class_string(entry->entry_class), 
+						type_string(entry->return_type), "none", entry->arg_num);
+					break;
+				default:
+					fprintf(stderr, "function of unknown type");
+				}
+				break;
+
+			case PROCEDURE:
+				fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", 
+					entry->entry_name, class_string(entry->entry_class), 
+					"none", "none", entry->arg_num);
+				break;
+
+			case ARRAY:
 				switch(entry->return_type)
 				{
 				case INUM:
@@ -139,11 +165,13 @@ void print_table(table_t* table)
 						entry->entry_name, class_string(entry->entry_class), 
 						type_string(entry->return_type), entry->entry_value.afval, 
 						entry->arg_num);
+					break;
+				default:
+					fprintf(stderr, "array of unknown type");
 				}
-			}
-			
-			else
-			{
+				break;
+
+			case VAR:
 				switch(entry->return_type)
 				{
 				case INUM:
@@ -171,11 +199,14 @@ void print_table(table_t* table)
 						entry->arg_num);
 					break;
 				default:
-					fprintf(stderr, "%s\t%s\t%s\t%s\t%d\n", 
-						entry->entry_name, "unknown", "none", "unknown", 
-						entry->arg_num);
+					fprintf(stderr, "variable of unknown type");
 					break;
 				}
+				break;
+			default:
+				fprintf(stderr, "object of unknown class");
+				break;
+
 			}
 			entry = entry->next;
 		}
@@ -208,12 +239,14 @@ char* class_string(int token)
 {
 	switch(token)
 	{
-		case FUNCTION:
-			return "fcn";
-		case ARRAY:
-			return "array";
 		case VAR:
 			return "var";
+		case ARRAY:
+			return "array";
+		case FUNCTION:
+			return "fcn";
+		case PROCEDURE:
+			return "proc";
 		default:
 			return "other";
 	}
@@ -221,29 +254,45 @@ char* class_string(int token)
 
 
 /* Allocate memory for new hash table entry, and return pointer */
-entry_t* create_entry(char* name, int entry_class, int return_type, int entry_ival, float entry_fval, char* entry_sval, int arg_num, int* arg_types)
+entry_t* make_entry(char* name, int entry_class, value* val_ptr, int return_type, int arg_num, int* arg_types, int start_idx, int stop_idx)
 {
 	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
 	ptr->entry_name = strdup(name);
 	ptr->entry_class = entry_class;
-	switch(entry_class)
-	{
-	case INUM:
-		ptr-> entry_value.ival = entry_ival;
-		break;
-	case RNUM:
-		ptr-> entry_value.fval = entry_fval;
-		break;
-	case STRING:
-		ptr-> entry_value.sval = strdup(entry_sval);
-		break;
-	default:
-		break;
-	}
-	ptr->arg_num = arg_num;
-	ptr->arg_types = (int*)malloc(arg_num*sizeof(int));
-	memcpy(ptr->arg_types, arg_types, arg_num*sizeof(int));
 	ptr->return_type = return_type;
+	
+	if(entry_class == VAR) // or VAR_PARAM
+	{
+		switch(return_type)
+		{
+		case INUM:
+			ptr->entry_value.ival = val_ptr->ival;
+			break;
+		case RNUM:
+			ptr->entry_value.fval = val_ptr->fval;
+			break;
+		case STRING:
+			ptr->entry_value.sval = val_ptr->sval;
+			break;
+		default:
+			break;
+		}
+	}
+	
+	ptr->arg_num = arg_num;
+	
+	if(arg_num > 0)
+	{
+		ptr->arg_types = (int*)malloc(arg_num*sizeof(int));
+		memcpy(ptr->arg_types, arg_types, arg_num*sizeof(int));
+	}
+	else
+	{
+		ptr->arg_types = NULL;
+	}
+	
+	ptr->start_idx = start_idx;
+	ptr->stop_idx = stop_idx;
 	ptr->next = NULL;
 	return ptr;
 }
@@ -314,6 +363,101 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 		return 1;
 	}
 }
+
+/* Converts keywords INTEGER and REAL to INUM and RNUM */
+int num_keyword_to_type(int token)
+{
+	switch(token)
+	{
+	case INTEGER:
+		return INUM;
+	case REAL:
+		return RNUM;
+		break;
+	default:
+		return EMPTY;
+	}
+}
+
+
+/* Given pointer to FUNCTION in syntax tree, add function to symbol table */
+void make_function(tree_t* fn_ptr)
+{
+	int fn_class = fn_ptr->type;
+	int fn_type;
+	char* fn_name;
+	int fn_arg_num = 0;
+	int* fn_args;
+	switch(fn_class)
+	{
+		case FUNCTION:
+			fn_type = num_keyword_to_type(fn_ptr->right->type);
+			if(fn_ptr->left->type != PARENOP) // function takes no args
+			{
+				fn_name = fn_ptr->left->attribute.sval;
+				entry_t* entry_ptr = 
+					make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
+				insert_entry(entry_ptr, top_table()->prev);
+			}
+			else // function does take args
+			{
+				fn_name = fn_ptr->left->left->attribute.sval;
+				fn_arg_num = count_args(fn_ptr->left->right);
+				fn_args = get_args(fn_ptr->left->right, fn_arg_num);
+				entry_t* entry_ptr = make_entry(fn_name, 
+					fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
+				insert_entry(entry_ptr, top_table()->prev);
+			}
+			break;
+
+		case PROCEDURE:
+			fn_type = EMPTY;
+			if(fn_ptr->left->type != PARENOP) // procedure takes no args
+			{
+				fn_name = fn_ptr->left->attribute.sval;
+				entry_t* entry_ptr = 
+					make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
+				insert_entry(entry_ptr, top_table()->prev);
+			}
+			else // procedure does take args
+			{
+				fn_name = fn_ptr->left->left->attribute.sval;
+				fn_arg_num = count_args(fn_ptr->left->right);
+				fn_args = get_args(fn_ptr->left->right, fn_arg_num);
+				entry_t* entry_ptr = make_entry(fn_name, 
+					fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
+				insert_entry(entry_ptr, top_table()->prev);
+			}
+			break;
+
+		default:
+			fprintf(stderr, "neither procedure nor function... not good");
+			break;
+	}
+
+}
+
+
+int count_args(tree_t* arg_ptr)
+{
+	int count = 0;
+	while(arg_ptr->type == LISTOP)
+	{
+		count++;
+		arg_ptr = arg_ptr->left;
+	}
+	return count;
+}
+
+
+int* get_args(tree_t* arg_ptr, int arg_num)
+{
+	int* type_list_ptr = (int*)malloc(sizeof(int)*arg_num);
+	for(int i = 0; i < arg_num; i++)
+		type_list_ptr[i] = arg_ptr->right->right->type;
+	return type_list_ptr;
+}
+
 
 /* Given pointer to "VAR" node in syntax tree, traverse and insert all 
    following variables into the current scope.

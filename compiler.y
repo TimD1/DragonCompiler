@@ -208,6 +208,7 @@ subprogram_decl
 					)
 				 );
 			make_vars($2);
+			make_function($1);
 			print_table(top_table());
 			pop_table();
 		}
