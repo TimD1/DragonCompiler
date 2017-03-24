@@ -49,6 +49,9 @@ typedef struct table_s {
 /* FUNCTIONS */
 int hashpjw(char *s);
 
+char* type_string(int token);
+char* class_string(int token);
+
 void make_vars(tree_t* var_ptr);
 void make_var_inum(char* name);
 void make_var_rnum(char* name);

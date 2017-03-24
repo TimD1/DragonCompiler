@@ -113,9 +113,11 @@ table_t* top_table()
 
 
 /* Prints the specified table */
+// add different printing for functions later
 void print_table(table_t* table)
 {
-	fprintf(stderr, "\n\nHASH TABLE %d\n_____________\n\n", table->id);
+	fprintf(stderr, "\n\n\t\tHASH TABLE %d\n____________________________________________\n", table->id);
+	fprintf(stderr, "\nname\tclass\ttype\tvalue\t\targs\n\n");
 	for(int i = 0; i < TABLE_SIZE; i++)
 	{
 		entry_t* entry = table->hash_table[i];
@@ -124,22 +126,57 @@ void print_table(table_t* table)
 			switch(entry->return_type)
 			{
 			case INUM:
-				fprintf(stderr, "%d:\t%p\t%s = %d\n", i, entry, entry->entry_name, entry->entry_value.ival);
+				fprintf(stderr, "%s\t%s\t%s\t%d\t\t%d\n", entry->entry_name, class_string(entry->entry_class), type_string(entry->return_type), entry->entry_value.ival, entry->arg_num);
 				break;
 			case RNUM:
-				fprintf(stderr, "%d:\t%p\t%s = %f\n", i, entry, entry->entry_name, entry->entry_value.fval);
+				fprintf(stderr, "%s\t%s\t%s\t%f\t%d\n", entry->entry_name, class_string(entry->entry_class), type_string(entry->return_type), entry->entry_value.fval, entry->arg_num);
 				break;
 			case STRING:
-				fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, entry->entry_value.sval);
+				fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", entry->entry_name, class_string(entry->entry_class), type_string(entry->return_type), entry->entry_value.sval, entry->arg_num);
 				break;
 			default:
-				fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, "none");
+				fprintf(stderr, "%s\t%s\t%s\t%s\t%d\n", entry->entry_name, "unknown", 
+					"none", "unknown", entry->arg_num);
 				break;
 			}
 			entry = entry->next;
 		}
 	}
 	fprintf(stderr, "\n\n");
+}
+
+
+/* Given a token, returns matching type string for printing */
+char* type_string(int token)
+{
+	switch(token)
+	{
+		case RNUM:
+			return "real";
+		case INUM:
+			return "int";
+		case STRING:
+			return "string";
+		default:
+			return "other";
+	}
+}
+
+
+/* Given a token, returns matching class string for printing */
+char* class_string(int token)
+{
+	switch(token)
+	{
+		case FUNCTION:
+			return "fcn";
+		case ARRAY:
+			return "array";
+		case VAR:
+			return "var";
+		default:
+			return "other";
+	}
 }
 
 
@@ -243,7 +280,6 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 */
 void make_vars(tree_t* decl_ptr)
 {
-	fprintf(stderr, "\nmaking variables...");
 	// while there are more types of variables
 	while(decl_ptr->type != EMPTY)
 	{
@@ -256,7 +292,6 @@ void make_vars(tree_t* decl_ptr)
 		tree_t* type_ptr = decl_ptr->right;
 		if(type_ptr->type == ARRAY) // handle arrays
 		{
-			fprintf(stderr, "array ");
 			var_class = ARRAY;
 			var_type = type_ptr->right->type;
 			
@@ -277,7 +312,6 @@ void make_vars(tree_t* decl_ptr)
 		}
 		else // handle basic types
 		{
-			fprintf(stderr, "var ");
 			var_class = VAR;
 			var_type = type_ptr->type;
 		}
@@ -329,7 +363,6 @@ void make_vars(tree_t* decl_ptr)
 
 		decl_ptr = decl_ptr->left->left;
 	}
-	fprintf(stderr, "done\n");
 }
 
 
