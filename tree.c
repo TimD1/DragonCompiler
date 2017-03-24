@@ -26,27 +26,6 @@ tree_t *int_tree(int type, int ival, tree_t *left, tree_t *right)
 }
 
 
-tree_t *entry_tree(int type, entry_t* pval)
-{
-	tree_t *ptr = (tree_t *)malloc(sizeof(tree_t));
-	assert(ptr != NULL); // need better error handling than this!
-	
-	ptr->type = type;
-	ptr->left = NULL;
-	ptr->right = NULL;
-	ptr->attribute.pval = pval;
-
-	if(DEBUG_TREE)
-	{
-		fprintf(stderr, "\nN: %p\t\t%s", ptr, (ptr->attribute.pval)->entry_name);
-		fprintf(stderr, "\n  L: %p", ptr->left);
-		fprintf(stderr, "\n  R: %p\n", ptr->right);
-	}
-	
-	return ptr;
-}
-
-
 tree_t *empty_tree()
 {
 	tree_t *ptr = (tree_t *)malloc(sizeof(tree_t));

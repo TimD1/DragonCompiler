@@ -55,8 +55,6 @@ void make_var_rnum(char* name);
 void make_arr_inum(char* name, int start_idx, int stop_idx);
 void make_arr_rnum(char* name, int start_idx, int stop_idx);
 
-entry_t* create_entry(char* name, int entry_class, int type, int entry_ival, float entry_fval, char* entry_sval, int arg_num, int* arg_types);
-
 entry_t* get_entry(table_t* table, char* name);
 entry_t* find_entry(table_t* table, char* name); 
 int insert_entry(entry_t* entry_ptr, table_t* table);
