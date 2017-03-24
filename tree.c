@@ -150,7 +150,7 @@ void print_tree(tree_t *t, int spaces)
 		case PARENOP: 	fprintf(stderr, "[PARENOP %s]", t->attribute.opval); break;
 		case LISTOP: 	fprintf(stderr, "[LISTOP %s]", t->attribute.opval); break;
 
-		case IDENT: 	fprintf(stderr, "[IDENT %p]", t->attribute.pval); break;
+		case IDENT: 	fprintf(stderr, "[IDENT %s]", t->attribute.sval); break;
 		case STRING: 	fprintf(stderr, "[STRING %s]", t->attribute.sval); break;
 
 		case PROGRAM: 	fprintf(stderr, "[PROGRAM %s]", t->attribute.sval); break;

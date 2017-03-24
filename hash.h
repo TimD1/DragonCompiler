@@ -3,26 +3,35 @@
 
 #define TABLE_SIZE 211
 
-/* ENUMERATIONS */
-typedef enum {IDK, FLT, INT, STR} type;
+typedef struct tree_s tree_t;
 
 /* UNIONS */
 typedef union {
 	int ival;
 	float fval;
 	char *sval;
+
+	// arrays only
+	int* aival;
+	float* afval;
 } value;
 
 /* STRUCTURES */
 /* Single entry structure */
 typedef struct entry_s {
 	char *entry_name;	// identifier name			numItems, i
-	type entry_type;	// type 					function, array, var, param
+	int entry_class;	// type 					function, array, var  ...param?
 	value entry_value;  // value					13, 3.1415, 'Sam'
-	int arg_num;		// number of arguments		0, 5
-	type *arg_types;	// list of argument types	[REAL, INT], [STRING]
-	type return_type;	// return type				REAL
+	int return_type;	// return type				RNUM, INUM
 	
+	// functions only
+	int arg_num;		// number of arguments		0, 5
+	int *arg_types;		// list of argument types	[INUM RNUM], [STRING]
+	
+	// arrays only
+	int start_idx;
+	int stop_idx;
+
 	struct entry_s *next; // linked list for collision
 } entry_t;
 
@@ -40,7 +49,14 @@ typedef struct table_s {
 /* FUNCTIONS */
 int hashpjw(char *s);
 
-entry_t* create_entry(char* name, type entry_type, int entry_ival, float entry_fval, char* entry_sval, int arg_num, type* arg_types, type return_type);
+void make_vars(tree_t* var_ptr);
+void make_var_inum(char* name);
+void make_var_rnum(char* name);
+void make_arr_inum(char* name, int start_idx, int stop_idx);
+void make_arr_rnum(char* name, int start_idx, int stop_idx);
+
+entry_t* create_entry(char* name, int entry_class, int type, int entry_ival, float entry_fval, char* entry_sval, int arg_num, int* arg_types);
+
 entry_t* get_entry(table_t* table, char* name);
 entry_t* find_entry(table_t* table, char* name); 
 int insert_entry(entry_t* entry_ptr, table_t* table);

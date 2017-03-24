@@ -4,6 +4,7 @@
 #include "hash.h"
 #define DEBUG_TREE 0
 
+
 /* Semantic analyzer's channel with parser */
 typedef struct tree_s {
 	/* token type */
@@ -16,7 +17,7 @@ typedef struct tree_s {
 		char *opval;	
 		char *sval;
 
-		entry_t *pval;
+		entry_t *pval; // may no longer need
 	} attribute;
 
 	/* children nodes */
@@ -28,9 +29,8 @@ tree_t* int_tree(int type, int ival, tree_t *left, tree_t *right);
 tree_t* float_tree(int type, float fval, tree_t *left, tree_t *right);
 tree_t* op_tree(int type, char* opval, tree_t *left, tree_t *right);
 tree_t* str_tree(int type, char* sval, tree_t *left, tree_t *right);
-tree_t* entry_tree(int type, entry_t* pval);
+tree_t* entry_tree(int type, entry_t* pval); // may no longer need
 tree_t* empty_tree();
-
 
 void print_tree(tree_t *t, int spaces);
 int eval_tree(tree_t *t);

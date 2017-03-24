@@ -3,6 +3,8 @@
 #include <stdio.h>
 
 #include "hash.h"
+#include "tree.h"
+#include "y.tab.h"
 
 table_t* head_table;
 
@@ -119,23 +121,20 @@ void print_table(table_t* table)
 		entry_t* entry = table->hash_table[i];
 		while(entry != NULL)
 		{
-			switch(entry->entry_type)
+			switch(entry->return_type)
 			{
-		case INT:
-			fprintf(stderr, "%d:\t%p\t%s = %d\n", i, entry, entry->entry_name, entry->entry_value.ival);
-			break;
-		case FLT:
-			fprintf(stderr, "%d:\t%p\t%s = %f\n", i, entry, entry->entry_name, entry->entry_value.fval);
-			break;
-		case STR:
-			fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, entry->entry_value.sval);
-			break;
-		case IDK:
-			fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, "type unknown");
-			break;
-		default:
-			fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, "none");
-			break;
+			case INUM:
+				fprintf(stderr, "%d:\t%p\t%s = %d\n", i, entry, entry->entry_name, entry->entry_value.ival);
+				break;
+			case RNUM:
+				fprintf(stderr, "%d:\t%p\t%s = %f\n", i, entry, entry->entry_name, entry->entry_value.fval);
+				break;
+			case STRING:
+				fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, entry->entry_value.sval);
+				break;
+			default:
+				fprintf(stderr, "%d:\t%p\t%s = %s\n", i, entry, entry->entry_name, "none");
+				break;
 			}
 			entry = entry->next;
 		}
@@ -145,28 +144,28 @@ void print_table(table_t* table)
 
 
 /* Allocate memory for new hash table entry, and return pointer */
-entry_t* create_entry(char* name, type entry_type, int entry_ival, float entry_fval, char* entry_sval, int arg_num, type* arg_types, type return_type)
+entry_t* create_entry(char* name, int entry_class, int return_type, int entry_ival, float entry_fval, char* entry_sval, int arg_num, int* arg_types)
 {
 	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
 	ptr->entry_name = strdup(name);
-	ptr->entry_type = entry_type;
-	switch(entry_type)
+	ptr->entry_class = entry_class;
+	switch(entry_class)
 	{
-	case INT:
+	case INUM:
 		ptr-> entry_value.ival = entry_ival;
 		break;
-	case FLT:
+	case RNUM:
 		ptr-> entry_value.fval = entry_fval;
 		break;
-	case STR:
+	case STRING:
 		ptr-> entry_value.sval = strdup(entry_sval);
 		break;
 	default:
 		break;
 	}
 	ptr->arg_num = arg_num;
-	ptr->arg_types = (type*)malloc(arg_num*sizeof(type));
-	memcpy(ptr->arg_types, arg_types, arg_num*sizeof(type));
+	ptr->arg_types = (int*)malloc(arg_num*sizeof(int));
+	memcpy(ptr->arg_types, arg_types, arg_num*sizeof(int));
 	ptr->return_type = return_type;
 	ptr->next = NULL;
 	return ptr;
@@ -219,7 +218,7 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 {
 	// entry already exists in table
 	if(get_entry(table, entry_ptr->entry_name) != NULL)
-		return 0;
+		return 0; // return some error here later
 
 	else // create new entry
 	{
@@ -237,4 +236,194 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 		}
 		return 1;
 	}
+}
+
+/* Given pointer to "VAR" node in syntax tree, traverse and insert all 
+   following variables into the current scope.
+*/
+void make_vars(tree_t* decl_ptr)
+{
+	fprintf(stderr, "\nmaking variables...");
+	// while there are more types of variables
+	while(decl_ptr->type != EMPTY)
+	{
+		int var_type = 0;
+		int var_class = 0;
+		int start_idx = 0;
+		int stop_idx = 0;
+
+		// determine and store type info
+		tree_t* type_ptr = decl_ptr->right;
+		if(type_ptr->type == ARRAY) // handle arrays
+		{
+			fprintf(stderr, "array ");
+			var_class = ARRAY;
+			var_type = type_ptr->right->type;
+			
+			type_ptr = type_ptr->left;
+			if(type_ptr->type != DOTDOT)
+			{
+				fprintf(stderr, "Array index missing DOTDOT");
+				exit(0);
+			}
+
+			if(type_ptr->left->type != INUM || type_ptr->right->type != INUM)
+			{
+				fprintf(stderr, "Array indices must be integer values.");
+				exit(0);
+			}
+			start_idx = type_ptr->left->attribute.ival;
+			stop_idx = type_ptr->right->attribute.ival;
+		}
+		else // handle basic types
+		{
+			fprintf(stderr, "var ");
+			var_class = VAR;
+			var_type = type_ptr->type;
+		}
+
+		tree_t* var_ptr = decl_ptr->left;
+		if(var_ptr->type != VAR)
+		{
+			fprintf(stderr, "'var' keyword not in correct tree location.");
+			exit(0);
+		}
+		var_ptr = var_ptr->right;
+
+		
+		//while there are more identifiers of this type
+		while(var_ptr->type == LISTOP)
+		{
+			char* var_name = var_ptr->right->attribute.sval;
+			switch(var_class)
+			{
+			case VAR:
+				switch(var_type)
+				{
+				case INTEGER:
+					make_var_inum(var_name);
+					break;
+				case REAL:
+					make_var_rnum(var_name);
+					break;
+				default:
+					fprintf(stderr, "Invalid type, must be integer or real.");
+					exit(0);
+				}
+			case ARRAY:
+				switch(var_type)
+				{
+				case INTEGER:
+					make_arr_inum(var_name, start_idx, stop_idx);
+					break;
+				case REAL:
+					make_arr_rnum(var_name, start_idx, stop_idx);
+					break;
+				default:
+					fprintf(stderr, "Invalid type, must be integer or real.");
+					exit(0);
+				}
+			}
+			var_ptr = var_ptr->left;
+		}
+
+		decl_ptr = decl_ptr->left->left;
+	}
+	fprintf(stderr, "done\n");
+}
+
+
+void make_var_inum(char* name)
+{
+	int default_ival = 0;
+
+	// set applicable values
+	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
+	ptr->entry_name = strdup(name);
+	ptr->entry_class = VAR;
+	ptr->return_type = INUM;
+	ptr->entry_value.ival = default_ival;
+	ptr->next = NULL;
+
+	// not applicable
+	ptr->arg_num = 0;
+	ptr->arg_types = NULL;
+	ptr->start_idx = 0;
+	ptr->stop_idx = 0;
+
+	insert_entry(ptr, top_table());
+}
+
+
+void make_var_rnum(char* name)
+{
+	float default_fval = 0.0;
+
+	// set applicable values
+	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
+	ptr->entry_name = strdup(name);
+	ptr->entry_class = VAR;
+	ptr->return_type = RNUM;
+	ptr->entry_value.fval = default_fval;
+	ptr->next = NULL;
+
+	// not applicable
+	ptr->arg_num = 0;
+	ptr->arg_types = NULL;
+	ptr->start_idx = 0;
+	ptr->stop_idx = 0;
+
+	insert_entry(ptr, top_table());
+}
+	
+void make_arr_inum(char* name, int start_idx, int stop_idx)
+{
+	int default_ival = 0;
+
+	// set applicable values`
+	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
+	ptr->entry_name = strdup(name);
+	ptr->entry_class = ARRAY;
+	ptr->return_type = INUM;
+
+	int* arr_ptr = (int*)malloc(sizeof(int)*(stop_idx-start_idx+1));
+	for(int i = start_idx; i <= stop_idx; i++)
+		arr_ptr[i-start_idx] = default_ival;
+	
+	ptr->entry_value.aival = arr_ptr;
+	ptr->next = NULL;
+	ptr->start_idx = start_idx;
+	ptr->stop_idx = stop_idx;
+
+	// not applicable
+	ptr->arg_num = 0;
+	ptr->arg_types = NULL;
+
+	insert_entry(ptr, top_table());
+}
+
+void make_arr_rnum(char* name, int start_idx, int stop_idx)
+{
+	float default_fval = 0;
+
+	// set applicable values`
+	entry_t* ptr = (entry_t*)malloc(sizeof(entry_t));
+	ptr->entry_name = strdup(name);
+	ptr->entry_class = ARRAY;
+	ptr->return_type = RNUM;
+
+	float* arr_ptr = (float*)malloc(sizeof(float)*(stop_idx-start_idx+1));
+	for(int i = start_idx; i <= stop_idx; i++)
+		arr_ptr[i-start_idx] = default_fval;
+	
+	ptr->entry_value.afval = arr_ptr;
+	ptr->next = NULL;
+	ptr->start_idx = start_idx;
+	ptr->stop_idx = stop_idx;
+
+	// not applicable
+	ptr->arg_num = 0;
+	ptr->arg_types = NULL;
+
+	insert_entry(ptr, top_table());
 }

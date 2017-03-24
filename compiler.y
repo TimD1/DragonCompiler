@@ -61,6 +61,7 @@ int main()
 /* general keyword tokens */
 %token <sval> PROGRAM
 %token <sval> FUNCTION
+%token <sval> METHOD
 %token <sval> PROCEDURE
 
 /* variable and array keyword tokens */
@@ -139,6 +140,7 @@ program
 						str_tree(PROGRAM, "decls sub_decls", $8, $9),
 					$10)
 				);
+			make_vars($8);
 			print_table(top_table());
 			pop_table();
 		}
@@ -147,21 +149,17 @@ program
 ident_list
 	: IDENT
 		{
-			// create table entry, add to table, generate tree leaf node
-			entry_t* ptr = create_entry($1, IDK, 0, 0.0, NULL, 0, NULL, IDK);
-			insert_entry(ptr, top_table()); 
-			tree_t *ident_leaf = entry_tree(IDENT, ptr);
-
-			$$ = ident_leaf;
+			$$ = op_tree(LISTOP, ",", 
+					empty_tree(),
+					str_tree(IDENT, $1, NULL, NULL)
+				);
 		}
 	| ident_list ',' IDENT
 		{
-			// create table entry, add to table, generate tree leaf node
-			entry_t* ptr = create_entry($3, IDK, 0, 0.0, NULL, 0, NULL, IDK);
-			insert_entry(ptr, top_table()); 
-			tree_t *ident_leaf = entry_tree(IDENT, ptr);
-			
-			$$ = op_tree(LISTOP, ",", $1, ident_leaf);
+			$$ = op_tree(LISTOP, ",", 
+					$1,
+					str_tree(IDENT, $3, NULL, NULL)
+				);
 		}
 	;
 
@@ -359,26 +357,12 @@ factor
 
 id
 	: IDENT
-		{
-			// create table entry, add to table, generate tree leaf node
-			entry_t* ptr = create_entry($1, IDK, 0, 0.0, NULL, 0, NULL, IDK);
-			insert_entry(ptr, top_table()); 
-			tree_t *ident_leaf = entry_tree(IDENT, ptr);
-
-			$$ = ident_leaf;
-		}
+		{ $$ = str_tree(IDENT, $1, NULL, NULL); }
 	;
 
 fn
 	: IDENT
-		{
-			// create table entry, add to table, generate tree leaf node
-			entry_t* ptr = create_entry($1, IDK, 0, 0.0, NULL, 0, NULL, IDK);
-			insert_entry(ptr, top_table()); 
-			tree_t *ident_leaf = entry_tree(IDENT, ptr);
-			
-			$$ = ident_leaf;
-		}
+		{ $$ = str_tree(IDENT, $1, NULL, NULL); }
 
 inum
 	: INUM
