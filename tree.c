@@ -111,6 +111,9 @@ tree_t *op_tree(int type, char* opval, tree_t *left, tree_t *right)
 void print_tree(tree_t *t, int spaces)
 {
 	if( t == NULL ) return;
+
+	if(spaces == 0)
+		fprintf(stderr, "\n\n\nSYNTAX TREE\n___________\n\n");
 	
 	for(int i = 0; i < spaces; i++)
 		fprintf(stderr, "| ");
@@ -199,5 +202,157 @@ int eval_tree(tree_t *t)
 				return lvalue / rvalue;
 			}
 			else assert(0);
+	}
+}
+
+
+/* Given a pointer to a node in the syntax tree (within an expression),
+   return the type of the node, recursively checking children and printing 
+   the first semantic error found, without recovery. */
+int type(tree_t* t)
+{
+	entry_t *var_ptr, *fn_ptr, *arr_ptr;
+	switch(t->type)
+	{
+	case INUM:
+	case RNUM:
+	case STRING:
+	case EMPTY:
+		return t->type;
+		break;
+
+	case NOT:
+		// check that correct type is used
+		if(type(t->left) != INUM)
+		{
+			fprintf(stderr, "\nERROR: 'NOT' must take a boolean (integer) argument.\n");
+			exit(0);
+		}
+		
+		// everything is fine
+		return INUM;
+		break;
+
+
+	case IDENT:
+		var_ptr = find_entry(top_table(), t->attribute.sval);
+		
+		// check that variable exists
+		if(var_ptr == NULL)
+		{
+			fprintf(stderr, "\nERROR: variable '%s' must be declared before it may be used.\n", t->attribute.sval);
+			exit(0);
+		}
+
+		// everything is fine
+		return var_ptr->return_type;
+		break;
+	
+
+	case MULOP:
+	case RELOP:
+	case ADDOP:
+		check_types(t->left, t->right);	
+
+		// everything is fine
+		return type(t->left);
+		break;
+
+
+	case PARENOP:
+		fn_ptr = find_entry(top_table(), t->left->attribute.sval);
+		
+		// check that function exists
+		if(fn_ptr == NULL)
+		{
+			fprintf(stderr, "\nERROR: function/procedure '%s' must be declared before it may be used.\n", t->attribute.sval);
+			exit(0);
+		}
+
+		// check that it is a function or procedure
+		if(fn_ptr->entry_class != FUNCTION && fn_ptr->entry_class != PROCEDURE)
+		{
+			fprintf(stderr, "\nERROR: '%s' is not a function or procedure.\n", 
+				t->attribute.sval);
+			exit(0);
+		}
+
+		// check that all arguments are of the correct type
+		check_args(fn_ptr, t->right);
+		
+		// everything is fine
+		return fn_ptr->return_type;
+		break;
+
+
+	case ARRAYOP:
+		arr_ptr = find_entry(top_table(), t->left->attribute.sval);
+		
+		// check that variable exists
+		if(arr_ptr == NULL)
+		{
+			fprintf(stderr, "\nERROR: array '%s' must be declared before it may be used.\n", t->attribute.sval);
+			exit(0);
+		}
+		
+		// check that this variable is an array
+		if(arr_ptr->entry_class != ARRAY)
+		{
+			fprintf(stderr, "\nERROR: '%s' is not an array.\n", t->attribute.sval);
+			exit(0);
+		}
+
+		// only integer indices are legal
+		if(type(t->right) != INUM)
+		{
+			fprintf(stderr, "\nERROR: array '%s' must use integer indices.\n", 
+				arr_ptr->entry_name);
+			exit(0);
+		}
+
+		// everything is fine
+		return arr_ptr->return_type;
+		break;
+
+
+	default:
+		fprintf(stderr, "\nERROR: unexpected tree node type encountered.\n"); 
+		exit(0);
+			
+	}
+}
+
+
+/* Given pointers to two nodes in syntax tree, make sure both types are same */
+void check_types(tree_t* left, tree_t* right)
+{
+	// check that types match
+	if(type(left) != type(right))
+	{
+		fprintf(stderr, "\nERROR: type mismatch, '%s' and '%s'\n", 
+			type_string(type(left)), type_string(type(right)));
+		exit(0);
+	}
+}
+
+
+/* Given a pointer to a function call in the syntax tree, and a pointer to the function's entry in the symbol table, check that it was called correctly. */
+void check_args(entry_t* fn, tree_t* fn_call)
+{
+	// check function has correct number of args
+	if(count_args(fn_call) != fn->arg_num)
+	{
+		fprintf(stderr, "\nERROR: function '%s' called with incorrect number of arguments.\n", fn->entry_name);
+		exit(0);
+	}
+
+	for(int i = 0; i < fn->arg_num; i++)
+	{
+		if(type(fn_call->right) != fn->arg_types[i])
+		{
+			fprintf(stderr, "\nERROR: function '%s' called with incorrect argument types.\n", fn->entry_name);
+			exit(0);
+		}
+		fn_call = fn_call->left;
 	}
 }

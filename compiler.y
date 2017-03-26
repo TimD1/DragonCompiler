@@ -125,22 +125,18 @@ int main()
 
 start
 	: program
-		{
-			fprintf(stderr, "\n\n\nSYNTAX TREE\n___________\n\n");
-			print_tree($1, 0);
-		}
+		{ print_tree($1, 0); }
 
 program
 	: PROGRAM fn { push_table(); } '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
 		{
+			add_io($5);
 			$$ = str_tree(PROGRAM, "head body",
 					op_tree(PARENOP, "()", $2, $5),
 					str_tree(PROGRAM, "decls compound_stmt",
 						str_tree(PROGRAM, "decls sub_decls", $8, $9),
 					$10)
 				);
-			make_vars($8);
-			add_io($5);
 			print_table(top_table());
 			pop_table();
 		}
@@ -169,6 +165,7 @@ decls
 			$$ = op_tree(LISTOP, ":",
 					op_tree(VAR, $2, $1, $3),
 				 $5);
+			make_vars($3, $5);
 		}
 	| /* empty */
 		{ $$ = empty_tree(); }
@@ -202,13 +199,12 @@ subprogram_decls
 subprogram_decl
 	: subprogram_head decls subprogram_decls compound_stmt
 		{
+			make_function($1);
 			$$ = op_tree(LISTOP, "_", $1, 
 					op_tree(LISTOP, "_", $2, 
 						op_tree(LISTOP, "_", $3, $4)
 					)
 				 );
-			make_vars($2);
-			make_function($1);
 			print_table(top_table());
 			pop_table();
 		}
@@ -224,8 +220,8 @@ subprogram_head
 header
 	: fn { push_table(); } '(' param_list ')'
 		{ 
-			$$ = op_tree(PARENOP, "()", $1, $4);
 			add_params($4);
+			$$ = op_tree(PARENOP, "()", $1, $4);
 		}
 	| fn { push_table(); }
 		{ $$ = $1; }
@@ -267,6 +263,7 @@ stmt_list
 stmt
 	: var ASSOP expr
 		{ 
+			check_types($1, $3);
 			$$ = op_tree(ASSOP, $2, $1, $3);
 		}
 	| procedure_stmt
@@ -283,6 +280,8 @@ stmt
 		{ $$ = str_tree(REPEAT, "repeat until", $2, $4); }
 	| FOR var ASSOP expr TO expr DO stmt
 		{
+			check_types($4, $6);
+			check_types($2, $4);
 			$$ = str_tree(FOR, $1,
 					op_tree(ASSOP, $3, $2, $4),
 					str_tree(TO, "to do", $6, $8)
@@ -313,22 +312,30 @@ procedure_stmt
 
 expr_list
 	: expr
-		{ $$ = $1; }
+		{ $$ = op_tree(LISTOP, ",", empty_tree(), $1); }
 	| expr_list ',' expr
 		{ $$ = op_tree(LISTOP, ",", $1, $3); }
 	;
 
 expr
 	: simple_expr
-		{ $$ = $1; }
-	| expr RELOP simple_expr 			/* allow multiple relops */
-		{ $$ = op_tree(RELOP, $2, $1, $3); }
+		{ 
+			tree_t* t = $1;
+			type(t);
+			$$ = t;
+		}
+	| simple_expr RELOP simple_expr 	/* or.. recurse, allowing multiple relops */
+		{ 
+			tree_t* t = op_tree(RELOP, $2, $1, $3);
+			type(t);
+			$$ = t;
+		}
 	;
 
 simple_expr
 	: term
 		{ $$ = $1; }
-	| ADDOP term						/* optional sign */ 
+	| ADDOP term						/* optional sign, ? */ 
 		{ $$ = op_tree(ADDOP, $1, $2, empty_tree()); }
 	| simple_expr ADDOP term
 		{ $$ = op_tree(ADDOP, $2, $1, $3); }

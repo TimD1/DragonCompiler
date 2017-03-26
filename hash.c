@@ -141,7 +141,7 @@ void print_table(table_t* table)
 						type_string(entry->return_type), "none", entry->arg_num);
 					break;
 				default:
-					fprintf(stderr, "function of unknown type");
+					fprintf(stderr, "\nERROR: function of unknown type.\n");
 				}
 				break;
 
@@ -167,7 +167,7 @@ void print_table(table_t* table)
 						entry->arg_num);
 					break;
 				default:
-					fprintf(stderr, "array of unknown type");
+					fprintf(stderr, "\nERROR: array of unknown type.\n");
 				}
 				break;
 
@@ -199,12 +199,12 @@ void print_table(table_t* table)
 						entry->arg_num);
 					break;
 				default:
-					fprintf(stderr, "variable of unknown type");
+					fprintf(stderr, "\nERROR: variable of unknown type.\n");
 					break;
 				}
 				break;
 			default:
-				fprintf(stderr, "object of unknown class");
+				fprintf(stderr, "\nERROR: object of unknown class.\n");
 				break;
 
 			}
@@ -228,6 +228,8 @@ char* type_string(int token)
 			return "string";
 		case PROGRAM:
 			return "i/o";
+		case EMPTY:
+			return "empty";
 		default:
 			return "other";
 	}
@@ -300,7 +302,6 @@ entry_t* make_entry(char* name, int entry_class, value* val_ptr, int return_type
 
 /* Given an identifier name and hash table,
    finds entry in hash table if it exists */
-// shouldn't just test name
 entry_t* get_entry(table_t* table, char* name)
 {
 	entry_t* cur_entry = table->hash_table[ hashpjw(name) ];
@@ -318,7 +319,6 @@ entry_t* get_entry(table_t* table, char* name)
 /* Given an identifier name and hash table,
    finds entry in hash table AND ALL OTHER
    HASH TABLES OF GREATER SCOPE if it exists */
-// shouldn't just test name
 entry_t* find_entry(table_t* table, char* name)
 {
 	// search all tables up to head table
@@ -344,7 +344,10 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 {
 	// entry already exists in table
 	if(get_entry(table, entry_ptr->entry_name) != NULL)
-		return 0; // return some error here later
+	{
+		fprintf(stderr, "\nERROR: entry '%s' already exists within current scope.\n", entry_ptr->entry_name);
+		exit(0);
+	}
 
 	else // create new entry
 	{
@@ -397,7 +400,8 @@ void make_function(tree_t* fn_ptr)
 				fn_name = fn_ptr->left->attribute.sval;
 				entry_t* entry_ptr = 
 					make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
-				insert_entry(entry_ptr, top_table()->prev);
+				insert_entry(entry_ptr, top_table()->prev); // function can be called
+				insert_entry(entry_ptr, top_table()); // allows recursion and returning
 			}
 			else // function does take args
 			{
@@ -406,7 +410,8 @@ void make_function(tree_t* fn_ptr)
 				fn_args = get_args(fn_ptr->left->right, fn_arg_num);
 				entry_t* entry_ptr = make_entry(fn_name, 
 					fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
-				insert_entry(entry_ptr, top_table()->prev);
+				insert_entry(entry_ptr, top_table()->prev); // function can be called
+				insert_entry(entry_ptr, top_table()); // allows recursion and returning
 			}
 			break;
 
@@ -437,7 +442,8 @@ void make_function(tree_t* fn_ptr)
 
 }
 
-
+/* Counts arguments to function, assuming one identifier listed at a time
+   (no identifier lists 'a,b:integer' are given) */
 int count_args(tree_t* arg_ptr)
 {
 	int count = 0;
@@ -449,7 +455,8 @@ int count_args(tree_t* arg_ptr)
 	return count;
 }
 
-
+/* Returns a list of types, given a pointer to a function declaration 
+   in the syntax tree. Also assumes no identifier lists are used. */
 int* get_args(tree_t* arg_ptr, int arg_num)
 {
 	int* type_list_ptr = (int*)malloc(sizeof(int)*arg_num);
@@ -462,90 +469,83 @@ int* get_args(tree_t* arg_ptr, int arg_num)
 /* Given pointer to "VAR" node in syntax tree, traverse and insert all 
    following variables into the current scope.
 */
-void make_vars(tree_t* decl_ptr)
+void make_vars(tree_t* var_ptr, tree_t* type_ptr)
 {
-	// while there are more types of variables
-	while(decl_ptr->type != EMPTY)
+	int var_type = 0;
+	int var_class = 0;
+	int start_idx = 0;
+	int stop_idx = 0;
+
+	// determine and store type info
+	if(type_ptr->type == ARRAY) // handle arrays
 	{
-		int var_type = 0;
-		int var_class = 0;
-		int start_idx = 0;
-		int stop_idx = 0;
-
-		// determine and store type info
-		tree_t* type_ptr = decl_ptr->right;
-		if(type_ptr->type == ARRAY) // handle arrays
+		var_class = ARRAY;
+		var_type = type_ptr->right->type;
+		
+		type_ptr = type_ptr->left;
+		if(type_ptr->type != DOTDOT)
 		{
-			var_class = ARRAY;
-			var_type = type_ptr->right->type;
-			
-			type_ptr = type_ptr->left;
-			if(type_ptr->type != DOTDOT)
-			{
-				fprintf(stderr, "Array index missing DOTDOT");
-				exit(0);
-			}
-
-			if(type_ptr->left->type != INUM || type_ptr->right->type != INUM)
-			{
-				fprintf(stderr, "Array indices must be integer values.");
-				exit(0);
-			}
-			start_idx = type_ptr->left->attribute.ival;
-			stop_idx = type_ptr->right->attribute.ival;
-		}
-		else // handle basic types
-		{
-			var_class = VAR;
-			var_type = type_ptr->type;
-		}
-
-		tree_t* var_ptr = decl_ptr->left;
-		if(var_ptr->type != VAR)
-		{
-			fprintf(stderr, "'var' keyword not in correct tree location.");
+			fprintf(stderr, "\nERROR: array index missing DOTDOT.\n");
 			exit(0);
 		}
-		var_ptr = var_ptr->right;
 
-		
-		//while there are more identifiers of this type
-		while(var_ptr->type == LISTOP)
+		if(type_ptr->left->type != INUM || type_ptr->right->type != INUM)
 		{
-			char* var_name = var_ptr->right->attribute.sval;
-			switch(var_class)
-			{
-			case VAR:
-				switch(var_type)
-				{
-				case INTEGER:
-					make_var_inum(var_name);
-					break;
-				case REAL:
-					make_var_rnum(var_name);
-					break;
-				default:
-					fprintf(stderr, "Invalid type, must be integer or real.");
-					exit(0);
-				}
-			case ARRAY:
-				switch(var_type)
-				{
-				case INTEGER:
-					make_arr_inum(var_name, start_idx, stop_idx);
-					break;
-				case REAL:
-					make_arr_rnum(var_name, start_idx, stop_idx);
-					break;
-				default:
-					fprintf(stderr, "Invalid type, must be integer or real.");
-					exit(0);
-				}
-			}
-			var_ptr = var_ptr->left;
+			fprintf(stderr, "\nERROR: array indices must be integral.\n");
+			exit(0);
 		}
 
-		decl_ptr = decl_ptr->left->left;
+		start_idx = type_ptr->left->attribute.ival;
+		stop_idx = type_ptr->right->attribute.ival;
+	}
+	else // handle basic types
+	{
+		var_class = VAR;
+		var_type = type_ptr->type;
+	}
+
+	//while there are more identifiers of this type
+	while(var_ptr->type == LISTOP)
+	{
+		char* var_name = var_ptr->right->attribute.sval;
+		switch(var_class)
+		{
+		case VAR:
+			switch(var_type)
+			{
+			case INTEGER:
+				make_var_inum(var_name);
+				break;
+			case REAL:
+				make_var_rnum(var_name);
+				break;
+			default:
+				fprintf(stderr, "\nERROR: invalid type, must be integer or real.\n");
+				exit(0);
+				break;
+			}
+			break;
+
+		case ARRAY:
+			switch(var_type)
+			{
+			case INTEGER:
+				make_arr_inum(var_name, start_idx, stop_idx);
+				break;
+			case REAL:
+				make_arr_rnum(var_name, start_idx, stop_idx);
+				break;
+			default:
+				fprintf(stderr, "\nERROR: invalid type, must be integer or real.\n");
+				exit(0);
+				break;
+			}
+			break;
+		default:
+				fprintf(stderr, "\nERROR: invalid class declaration, must be variable or array.\n");
+				exit(0);
+		}
+		var_ptr = var_ptr->left;
 	}
 }
 
@@ -587,13 +587,13 @@ void add_params(tree_t* param_ptr)
 			type_ptr = type_ptr->left;
 			if(type_ptr->type != DOTDOT)
 			{
-				fprintf(stderr, "Parameter array index missing DOTDOT");
+				fprintf(stderr, "\nERROR: parameter array index missing DOTDOT\n.");
 				exit(0);
 			}
 
 			if(type_ptr->left->type != INUM || type_ptr->right->type != INUM)
 			{
-				fprintf(stderr, "Parameter array indices must be integer values.");
+				fprintf(stderr, "\nERROR: parameter array indices must be integral.\n");
 				exit(0);
 			}
 			start_idx = type_ptr->left->attribute.ival;
@@ -608,6 +608,7 @@ void add_params(tree_t* param_ptr)
 
 		//while there are more identifiers of this type
 		tree_t* var_ptr = param_ptr->right->left;
+		value default_val;
 		while(var_ptr->type == LISTOP)
 		{
 			char* var_name = var_ptr->right->attribute.sval;
@@ -618,14 +619,18 @@ void add_params(tree_t* param_ptr)
 				{
 				case INTEGER:
 					make_var_inum(var_name);
+					//default_val.ival = 0;
+					//make_entry(var_name, VAR, &default_val, INUM, 0, NULL, 0, 0);
 					break;
 				case REAL:
 					make_var_rnum(var_name);
 					break;
 				default:
-					fprintf(stderr, "Invalid param type, must be integer or real.");
+					fprintf(stderr, "\nERROR: invalid parameter type, must be integer or real.\n");
 					exit(0);
 				}
+				break;
+
 			case ARRAY:
 				switch(var_type)
 				{
@@ -636,9 +641,13 @@ void add_params(tree_t* param_ptr)
 					make_arr_rnum(var_name, start_idx, stop_idx);
 					break;
 				default:
-					fprintf(stderr, "Invalid param type, must be integer or real.");
+					fprintf(stderr, "\nERROR: invalid parameter type, must be integer or real.\n");
 					exit(0);
 				}
+				break;
+			default:
+				fprintf(stderr, "\nERROR: invalid parameter class, must be variable or array.\n");
+				exit(0);
 			}
 			var_ptr = var_ptr->left;
 		}
