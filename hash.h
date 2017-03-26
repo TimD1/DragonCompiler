@@ -56,7 +56,8 @@ int num_keyword_to_type(int token);
 void make_vars(tree_t* var_ptr, tree_t* type_ptr);
 void add_io(tree_t* ident_list_ptr);
 void add_params(tree_t* param_ptr);
-void make_function(tree_t* fn_ptr);
+void make_function(tree_t* fn_ptr, tree_t* type_ptr);
+void make_procedure(tree_t* proc_ptr);
 int count_args(tree_t* arg_ptr);
 int* get_args(tree_t* arg_ptr, int arg_num);
 

@@ -35,5 +35,7 @@ int eval_tree(tree_t *expr);
 int type(tree_t* expr);
 void check_types(tree_t* left, tree_t* right);
 void check_args(entry_t* fn, tree_t* fn_call);
+void check_function(tree_t* head_ptr, tree_t* body_ptr);
+tree_t* find_return_stmt(char* fn_name, tree_t* t);
 
 #endif

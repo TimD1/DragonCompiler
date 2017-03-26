@@ -230,6 +230,10 @@ char* type_string(int token)
 			return "i/o";
 		case EMPTY:
 			return "empty";
+		case INTEGER:
+			return "integer keyword"; // BAD!
+		case REAL:
+			return "real keyword"; // BAD!
 		default:
 			return "other";
 	}
@@ -367,6 +371,7 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 	}
 }
 
+
 /* Converts keywords INTEGER and REAL to INUM and RNUM */
 int num_keyword_to_type(int token)
 {
@@ -374,73 +379,139 @@ int num_keyword_to_type(int token)
 	{
 	case INTEGER:
 		return INUM;
+		break;
 	case REAL:
 		return RNUM;
 		break;
 	default:
 		return EMPTY;
+		break;
 	}
 }
 
 
 /* Given pointer to FUNCTION in syntax tree, add function to symbol table */
-void make_function(tree_t* fn_ptr)
+void make_function(tree_t* fn_ptr, tree_t* type_ptr)
 {
-	int fn_class = fn_ptr->type;
-	int fn_type;
+
+	int fn_class = FUNCTION;
 	char* fn_name;
 	int fn_arg_num = 0;
 	int* fn_args;
-	switch(fn_class)
+	int fn_type = num_keyword_to_type(type_ptr->type);
+	
+	if(fn_ptr->type != PARENOP) // function takes no args
 	{
-		case FUNCTION:
-			fn_type = num_keyword_to_type(fn_ptr->right->type);
-			if(fn_ptr->left->type != PARENOP) // function takes no args
-			{
-				fn_name = fn_ptr->left->attribute.sval;
-				entry_t* entry_ptr = 
-					make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
-				insert_entry(entry_ptr, top_table()->prev); // function can be called
-				insert_entry(entry_ptr, top_table()); // allows recursion and returning
-			}
-			else // function does take args
-			{
-				fn_name = fn_ptr->left->left->attribute.sval;
-				fn_arg_num = count_args(fn_ptr->left->right);
-				fn_args = get_args(fn_ptr->left->right, fn_arg_num);
-				entry_t* entry_ptr = make_entry(fn_name, 
-					fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
-				insert_entry(entry_ptr, top_table()->prev); // function can be called
-				insert_entry(entry_ptr, top_table()); // allows recursion and returning
-			}
-			break;
+		fn_name = fn_ptr->attribute.sval;
+		entry_t* entry_ptr = 
+			make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
+		insert_entry(entry_ptr, top_table()->prev); // function can be called
+		
+		// need two copies as hash table prevents memory leaks
+		entry_t* entry_ptr2 = 
+			make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
+		insert_entry(entry_ptr2, top_table()); // allows recursion and returning
+	}
+	else // function does take args
+	{
+		fn_name = fn_ptr->left->attribute.sval;
+		fn_arg_num = count_args(fn_ptr->right);
+		fn_args = get_args(fn_ptr->right, fn_arg_num);
+		entry_t* entry_ptr = make_entry(fn_name, 
+			fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
+		insert_entry(entry_ptr, top_table()->prev); // function can be called
+		
+		// need two copies as hash table prevents memory leaks
+		entry_t* entry_ptr2 = 
+			make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
+		insert_entry(entry_ptr2, top_table()); // allows recursion and returning
+	}
+}
 
-		case PROCEDURE:
-			fn_type = EMPTY;
-			if(fn_ptr->left->type != PARENOP) // procedure takes no args
-			{
-				fn_name = fn_ptr->left->attribute.sval;
-				entry_t* entry_ptr = 
-					make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
-				insert_entry(entry_ptr, top_table()->prev);
-			}
-			else // procedure does take args
-			{
-				fn_name = fn_ptr->left->left->attribute.sval;
-				fn_arg_num = count_args(fn_ptr->left->right);
-				fn_args = get_args(fn_ptr->left->right, fn_arg_num);
-				entry_t* entry_ptr = make_entry(fn_name, 
-					fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
-				insert_entry(entry_ptr, top_table()->prev);
-			}
-			break;
+/* Given pointer to PROCEDURE in syntax tree, add procedure to symbol table */
+void make_procedure(tree_t* proc_ptr)
+{
+	int proc_class = PROCEDURE;
+	char* proc_name;
+	int proc_arg_num = 0;
+	int* proc_args;
+	int proc_type = EMPTY;
+	
+	if(proc_ptr->type != PARENOP) // procedure takes no args
+	{
+		proc_name = proc_ptr->attribute.sval;
+		entry_t* entry_ptr = 
+			make_entry(proc_name, proc_class, NULL, proc_type, 0, NULL, 0, 0);
+		insert_entry(entry_ptr, top_table()->prev);
+	}
+	else // procedure does take args
+	{
+		proc_name = proc_ptr->left->attribute.sval;
+		proc_arg_num = count_args(proc_ptr->right);
+		proc_args = get_args(proc_ptr->right, proc_arg_num);
+		entry_t* entry_ptr = make_entry(proc_name, 
+			proc_class, NULL, proc_type, proc_arg_num, proc_args, 0, 0);
+		insert_entry(entry_ptr, top_table()->prev);
+	}
+}
 
-		default:
-			fprintf(stderr, "neither procedure nor function... not good");
-			break;
+
+/* If a function, check that return statement exists and is of correct type */
+void check_function(tree_t* head_ptr, tree_t* body_ptr)
+{
+	if(head_ptr->type == FUNCTION)
+	{
+		int fn_type = num_keyword_to_type(head_ptr->right->type);
+		head_ptr = head_ptr->left;
+		if(head_ptr->type == PARENOP)
+			head_ptr = head_ptr->left;
+		char* fn_name = head_ptr->attribute.sval;
+		
+		// functions must have return statements
+		tree_t* return_stmt = find_return_stmt(fn_name, body_ptr);
+		if(return_stmt == NULL)
+		{
+			fprintf(stderr, "\nERROR: return statement missing from function '%s'.\n", 
+				fn_name);
+			exit(0);
+		}
+
+		// return statement must be of correct type
+		if(type(return_stmt->right) != fn_type)
+		{
+			fprintf(stderr, "\nERROR: '%s's return statement of type '%s' given argument of type '%s'.\n", fn_name, type_string(fn_type), type_string(type(return_stmt->right)));
+			exit(0);
+		}
+	}
+}
+
+
+/* Recursively search for return statement, given name and tree. */
+tree_t* find_return_stmt(char* fn_name, tree_t* t)
+{
+	// give up at leaves
+	if(t == NULL || t->type == EMPTY)
+		return NULL;
+
+	// return statement found!
+	if(t->type == ASSOP && !strcmp(t->left->attribute.sval, fn_name))
+		return t;
+
+	// recursively explore left and right children
+	else
+	{
+		tree_t* left = find_return_stmt(fn_name, t->left);
+		tree_t* right = find_return_stmt(fn_name, t->right);
+		if(right != NULL)
+			return right;
+		if(left != NULL)
+			return left;
 	}
 
+	// return statement not in subtree
+	return NULL;
 }
+
 
 /* Counts arguments to function, assuming one identifier listed at a time
    (no identifier lists 'a,b:integer' are given) */
@@ -461,7 +532,10 @@ int* get_args(tree_t* arg_ptr, int arg_num)
 {
 	int* type_list_ptr = (int*)malloc(sizeof(int)*arg_num);
 	for(int i = 0; i < arg_num; i++)
-		type_list_ptr[i] = arg_ptr->right->right->type;
+	{
+		type_list_ptr[i] = num_keyword_to_type(arg_ptr->right->right->type);
+		arg_ptr = arg_ptr->left;
+	}
 	return type_list_ptr;
 }
 

@@ -199,7 +199,7 @@ subprogram_decls
 subprogram_decl
 	: subprogram_head decls subprogram_decls compound_stmt
 		{
-			make_function($1);
+			check_function($1, $4);
 			$$ = op_tree(LISTOP, "_", $1, 
 					op_tree(LISTOP, "_", $2, 
 						op_tree(LISTOP, "_", $3, $4)
@@ -212,9 +212,15 @@ subprogram_decl
 
 subprogram_head
 	: FUNCTION header ':' std_type ';'
-		{ $$ = str_tree(FUNCTION, "function type", $2, $4); }
+		{
+			$$ = str_tree(FUNCTION, "function type", $2, $4);
+			make_function($2, $4);
+		}
 	| PROCEDURE header ';'
-		{ $$ = str_tree(PROCEDURE, $1, $2, empty_tree()); }
+		{
+			$$ = str_tree(PROCEDURE, $1, $2, empty_tree());
+			make_procedure($2);
+		}
 	;
 
 header
@@ -307,7 +313,11 @@ procedure_stmt
 	: id
 		{ $$ = $1; }
 	| id '(' expr_list ')'
-		{ $$ = op_tree(PARENOP, "()", $1, $3); }
+		{ 
+			$$ = op_tree(PARENOP, "()", $1, $3);
+			entry_t* fn_entry = find_entry(top_table(), $1->attribute.sval);
+			check_args(fn_entry, $3);
+		}
 	;
 
 expr_list

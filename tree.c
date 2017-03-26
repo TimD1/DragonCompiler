@@ -265,15 +265,23 @@ int type(tree_t* t)
 		// check that function exists
 		if(fn_ptr == NULL)
 		{
-			fprintf(stderr, "\nERROR: function/procedure '%s' must be declared before it may be used.\n", t->attribute.sval);
+			fprintf(stderr, "\nERROR: function/procedure '%s' must be declared before it may be used.\n", t->left->attribute.sval);
 			exit(0);
 		}
 
-		// check that it is a function or procedure
-		if(fn_ptr->entry_class != FUNCTION && fn_ptr->entry_class != PROCEDURE)
+		// must be a function, since procedures don't return values
+		if(fn_ptr->entry_class == PROCEDURE)
 		{
-			fprintf(stderr, "\nERROR: '%s' is not a function or procedure.\n", 
-				t->attribute.sval);
+			fprintf(stderr, "\nERROR: procedure '%s' does not return a value.\n", 
+				t->left->attribute.sval);
+			exit(0);
+		}
+
+		// cover all other cases 
+		if(fn_ptr->entry_class != FUNCTION)
+		{
+			fprintf(stderr, "\nERROR: '%s' is not a function.\n", 
+				t->left->attribute.sval);
 			exit(0);
 		}
 
@@ -291,14 +299,14 @@ int type(tree_t* t)
 		// check that variable exists
 		if(arr_ptr == NULL)
 		{
-			fprintf(stderr, "\nERROR: array '%s' must be declared before it may be used.\n", t->attribute.sval);
+			fprintf(stderr, "\nERROR: array '%s' must be declared before it may be used.\n", t->left->attribute.sval);
 			exit(0);
 		}
 		
 		// check that this variable is an array
 		if(arr_ptr->entry_class != ARRAY)
 		{
-			fprintf(stderr, "\nERROR: '%s' is not an array.\n", t->attribute.sval);
+			fprintf(stderr, "\nERROR: '%s' is not an array.\n", t->left->attribute.sval);
 			exit(0);
 		}
 
@@ -342,7 +350,7 @@ void check_args(entry_t* fn, tree_t* fn_call)
 	// check function has correct number of args
 	if(count_args(fn_call) != fn->arg_num)
 	{
-		fprintf(stderr, "\nERROR: function '%s' called with incorrect number of arguments.\n", fn->entry_name);
+		fprintf(stderr, "\nERROR: function/procedure '%s' called with %d arguments instead of %d.\n", fn->entry_name, count_args(fn_call), fn->arg_num);
 		exit(0);
 	}
 
@@ -350,7 +358,7 @@ void check_args(entry_t* fn, tree_t* fn_call)
 	{
 		if(type(fn_call->right) != fn->arg_types[i])
 		{
-			fprintf(stderr, "\nERROR: function '%s' called with incorrect argument types.\n", fn->entry_name);
+			fprintf(stderr, "\nERROR: function/procedure '%s' called with incorrect argument types, '%s' instead of '%s'.\n", fn->entry_name, type_string(type(fn_call->right)),type_string(fn->arg_types[i]));
 			exit(0);
 		}
 		fn_call = fn_call->left;
