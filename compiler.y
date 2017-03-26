@@ -90,7 +90,8 @@ int main()
 %type <tval> subprogram_decls
 %type <tval> subprogram_decl
 %type <tval> subprogram_head
-%type <tval> header
+%type <tval> fn_header
+%type <tval> proc_header
 %type <tval> param_list
 %type <tval> param
 %type <tval> compound_stmt
@@ -128,7 +129,7 @@ start
 		{ print_tree($1, 0); }
 
 program
-	: PROGRAM fn { push_table(); } '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
+	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
 		{
 			add_io($5);
 			$$ = str_tree(PROGRAM, "head body",
@@ -211,25 +212,35 @@ subprogram_decl
 	;
 
 subprogram_head
-	: FUNCTION header ':' std_type ';'
+	: FUNCTION fn_header ':' std_type ';'
 		{
 			$$ = str_tree(FUNCTION, "function type", $2, $4);
 			make_function($2, $4);
 		}
-	| PROCEDURE header ';'
+	| PROCEDURE proc_header ';'
 		{
 			$$ = str_tree(PROCEDURE, $1, $2, empty_tree());
 			make_procedure($2);
 		}
 	;
 
-header
-	: fn { push_table(); } '(' param_list ')'
+fn_header
+	: fn { push_table($1->attribute.sval, FUNCTION); } '(' param_list ')'
 		{ 
 			add_params($4);
 			$$ = op_tree(PARENOP, "()", $1, $4);
 		}
-	| fn { push_table(); }
+	| fn { push_table($1->attribute.sval, FUNCTION); }
+		{ $$ = $1; }
+	;
+
+proc_header
+	: fn { push_table($1->attribute.sval, PROCEDURE); } '(' param_list ')'
+		{ 
+			add_params($4);
+			$$ = op_tree(PARENOP, "()", $1, $4);
+		}
+	| fn { push_table($1->attribute.sval, PROCEDURE); }
 		{ $$ = $1; }
 	;
 

@@ -39,6 +39,8 @@ typedef struct entry_s {
 typedef struct table_s {
 	entry_t *hash_table[ TABLE_SIZE ];
 	int id;
+	char* table_name;
+	int table_class;
 
 	// use a double linked list as a stack
 	struct table_s *prev;
@@ -51,6 +53,7 @@ int hashpjw(char *s);
 
 char* type_string(int token);
 char* class_string(int token);
+char* arg_string(int argnum, int* args);
 int num_keyword_to_type(int token);
 
 void make_vars(tree_t* var_ptr, tree_t* type_ptr);
@@ -74,7 +77,7 @@ entry_t* find_entry(table_t* table, char* name);
 int insert_entry(entry_t* entry_ptr, table_t* table);
 
 table_t* create_table();
-table_t* push_table();
+table_t* push_table(char* name, int class);
 table_t* top_table();
 void print_table(table_t* table);
 void pop_table();

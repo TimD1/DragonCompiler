@@ -79,8 +79,8 @@ X	5.2. Function must contain a "return" statement within its own body;
 X		 this is of the form: <function_name> := <expression>
 X	5.3. Functions must accept exactly the same number of arguments as is 
 X		 declared in its header, with the correct sequence of types
-	5.4. Functions are not allowed to update the value of nonlocal objects 
-		 (via assignment statements)
+X	5.4. Functions are not allowed to update the value of nonlocal objects 
+X		 (via assignment statements)
 
 6. Semantic rules for Procedures
 X	6.1. Procedure calls do not return values

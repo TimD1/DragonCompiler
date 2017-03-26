@@ -29,12 +29,14 @@ int hashpjw( char *s )
 
 
 /* Push new table onto the stack */
-table_t* push_table()
+table_t* push_table(char* name, int class)
 {
 	// create and initialize new table
 	table_t* ptr = (table_t*)malloc(sizeof(table_t));
 	for(int i = 0; i < TABLE_SIZE; i++)
 		ptr->hash_table[i] = NULL;
+	ptr->table_name = strdup(name);
+	ptr->table_class = class;
 
 	// set new table's pointers
 	ptr->next = head_table;
@@ -117,8 +119,10 @@ table_t* top_table()
 // add different printing for functions later
 void print_table(table_t* table)
 {
-	fprintf(stderr, "\n\n\t\tHASH TABLE %d\n____________________________________________\n", table->id);
-	fprintf(stderr, "\nname\tclass\ttype\tvalue\t\targs\n\n");
+	fprintf(stderr, "\n\n\nHASH TABLE %d: %s '%s'\n", table->id, class_string(table->table_class), table->table_name);
+	for(int i = 0; i < 75; i++)
+		fprintf(stderr, "_");
+	fprintf(stderr, "\n\nname\tclass\ttype\tvalue\t\targs\targ_types\n\n");
 	for(int i = 0; i < TABLE_SIZE; i++)
 	{
 		entry_t* entry = table->hash_table[i];
@@ -131,14 +135,16 @@ void print_table(table_t* table)
 				switch(entry->return_type)
 				{
 				case INUM:
-					fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", 
+					fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\t%s\n", 
 						entry->entry_name, class_string(entry->entry_class), 
-						type_string(entry->return_type), "none", entry->arg_num);
+						type_string(entry->return_type), "none", entry->arg_num,
+						arg_string(entry->arg_num, entry->arg_types));
 					break;
 				case RNUM:
-					fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", 
+					fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\t%s\n", 
 						entry->entry_name, class_string(entry->entry_class), 
-						type_string(entry->return_type), "none", entry->arg_num);
+						type_string(entry->return_type), "none", entry->arg_num,
+						arg_string(entry->arg_num, entry->arg_types));
 					break;
 				default:
 					fprintf(stderr, "\nERROR: function of unknown type.\n");
@@ -146,9 +152,10 @@ void print_table(table_t* table)
 				break;
 
 			case PROCEDURE:
-				fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\n", 
+				fprintf(stderr, "%s\t%s\t%s\t%s\t\t%d\t%s\n", 
 					entry->entry_name, class_string(entry->entry_class), 
-					"none", "none", entry->arg_num);
+					"none", "none", entry->arg_num, 
+					arg_string(entry->arg_num, entry->arg_types));
 				break;
 
 			case ARRAY:
@@ -212,6 +219,20 @@ void print_table(table_t* table)
 		}
 	}
 	fprintf(stderr, "\n\n");
+}
+
+/* Given number of args and pointer to args, return string of concatenated types */
+char* arg_string(int argnum, int* args)
+{
+	char* string = (char*)malloc(100*sizeof(char));
+	for(int i = 0; i < 100; i++)
+		string[i] = '\0';
+	for(int i = 0; i < argnum; i++)
+	{
+		strcat(string, type_string(args[i]));
+		strcat(string, " ");
+	}
+	return string;
 }
 
 
@@ -395,9 +416,9 @@ void make_function(tree_t* fn_ptr, tree_t* type_ptr)
 {
 
 	int fn_class = FUNCTION;
-	char* fn_name;
+	char *fn_name, *fn_name2;
 	int fn_arg_num = 0;
-	int* fn_args;
+	int *fn_args, *fn_args2;
 	int fn_type = num_keyword_to_type(type_ptr->type);
 	
 	if(fn_ptr->type != PARENOP) // function takes no args
@@ -408,8 +429,9 @@ void make_function(tree_t* fn_ptr, tree_t* type_ptr)
 		insert_entry(entry_ptr, top_table()->prev); // function can be called
 		
 		// need two copies as hash table prevents memory leaks
+		fn_name2 = fn_ptr->attribute.sval;
 		entry_t* entry_ptr2 = 
-			make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
+			make_entry(fn_name2, fn_class, NULL, fn_type, 0, NULL, 0, 0);
 		insert_entry(entry_ptr2, top_table()); // allows recursion and returning
 	}
 	else // function does take args
@@ -417,13 +439,15 @@ void make_function(tree_t* fn_ptr, tree_t* type_ptr)
 		fn_name = fn_ptr->left->attribute.sval;
 		fn_arg_num = count_args(fn_ptr->right);
 		fn_args = get_args(fn_ptr->right, fn_arg_num);
-		entry_t* entry_ptr = make_entry(fn_name, 
-			fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
+		entry_t* entry_ptr = 
+			make_entry(fn_name, fn_class, NULL, fn_type, fn_arg_num, fn_args, 0, 0);
 		insert_entry(entry_ptr, top_table()->prev); // function can be called
 		
 		// need two copies as hash table prevents memory leaks
+		fn_name2 = fn_ptr->left->attribute.sval;
+		fn_args2 = get_args(fn_ptr->right, fn_arg_num);
 		entry_t* entry_ptr2 = 
-			make_entry(fn_name, fn_class, NULL, fn_type, 0, NULL, 0, 0);
+			make_entry(fn_name2, fn_class, NULL, fn_type, fn_arg_num, fn_args2, 0, 0);
 		insert_entry(entry_ptr2, top_table()); // allows recursion and returning
 	}
 }
@@ -449,19 +473,22 @@ void make_procedure(tree_t* proc_ptr)
 		proc_name = proc_ptr->left->attribute.sval;
 		proc_arg_num = count_args(proc_ptr->right);
 		proc_args = get_args(proc_ptr->right, proc_arg_num);
-		entry_t* entry_ptr = make_entry(proc_name, 
-			proc_class, NULL, proc_type, proc_arg_num, proc_args, 0, 0);
+		entry_t* entry_ptr = 
+			make_entry(proc_name, proc_class, NULL, 
+				proc_type, proc_arg_num, proc_args, 0, 0);
 		insert_entry(entry_ptr, top_table()->prev);
 	}
 }
 
 
-/* If a function, check that return statement exists and is of correct type */
+/* If a function, check that return statement exists and is of correct type.
+ 	Additionally, check that no assignment statements with nonlocal vars are made */
 void check_function(tree_t* head_ptr, tree_t* body_ptr)
 {
 	if(head_ptr->type == FUNCTION)
 	{
 		int fn_type = num_keyword_to_type(head_ptr->right->type);
+
 		head_ptr = head_ptr->left;
 		if(head_ptr->type == PARENOP)
 			head_ptr = head_ptr->left;
@@ -486,7 +513,8 @@ void check_function(tree_t* head_ptr, tree_t* body_ptr)
 }
 
 
-/* Recursively search for return statement, given name and tree. */
+/* Recursively search for return statement (and illegal assignments), 
+   given name and tree. */
 tree_t* find_return_stmt(char* fn_name, tree_t* t)
 {
 	// give up at leaves
@@ -494,8 +522,22 @@ tree_t* find_return_stmt(char* fn_name, tree_t* t)
 		return NULL;
 
 	// return statement found!
-	if(t->type == ASSOP && !strcmp(t->left->attribute.sval, fn_name))
-		return t;
+	if(t->type == ASSOP)
+	{
+		char* assigned_name = t->left->attribute.sval;
+		if(!strcmp(assigned_name, fn_name))
+			return t;
+		else
+		{
+			// if variable is not local, assignment is illegal
+			if(get_entry(top_table(), assigned_name) == NULL && 
+				find_entry(top_table()->prev, assigned_name) != NULL)
+			{
+				fprintf(stderr, "\nERROR: cannot assign value of non-local variable '%s' from within function '%s'.\n", assigned_name, fn_name);
+				exit(0);
+			}
+		}
+	}
 
 	// recursively explore left and right children
 	else
