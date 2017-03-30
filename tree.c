@@ -223,7 +223,7 @@ int type(tree_t* t)
 
 	case NOT:
 		// check that correct type is used
-		if(type(t->left) != INUM)
+		if(type(t->left) != BOOL)
 		{
 			fprintf(stderr, "\nERROR: 'NOT' must take a boolean (integer) argument.\n");
 			exit(0);
@@ -250,14 +250,39 @@ int type(tree_t* t)
 	
 
 	case MULOP:
-	case RELOP:
 	case ADDOP:
-		check_types(t->left, t->right);	
+		// using an arithmetic expression
+		if(!strcmp(t->attribute.opval, "+") || !strcmp(t->attribute.opval, "-") ||
+		   !strcmp(t->attribute.opval, "*") || !strcmp(t->attribute.opval, "/"))
+		{
+			check_types(t->left, t->right);
+			if(type(t->left) == BOOL)
+			{
+				fprintf(stderr, "\nERROR: cannot use a boolean in an arithmetic expression.\n");
+				exit(0);
+			}
+			return type(t->left);
+		}
 
-		// everything is fine
-		return type(t->left);
+		else //using a boolean expression
+		{
+			check_types(t->left, t->right);	
+			if(type(t->left) != BOOL)
+			{
+				fprintf(stderr, "\nERROR: cannot use a number in a boolean expression.\n");
+				exit(0);
+			}
+			return BOOL;
+		}  
 		break;
 
+
+	case RELOP:
+		check_types(t->left, t->right);
+		
+		// everything is fine
+		return BOOL;
+		break;
 
 	case PARENOP:
 		fn_ptr = find_entry(top_table(), t->left->attribute.sval);
@@ -339,6 +364,19 @@ void check_types(tree_t* left, tree_t* right)
 	{
 		fprintf(stderr, "\nERROR: type mismatch, '%s' and '%s'\n", 
 			type_string(type(left)), type_string(type(right)));
+		exit(0);
+	}
+}
+
+
+
+/* Given pointer to node in tree, ensure it is the required type. */
+void enforce_type(tree_t* tree_ptr, int type_tok)
+{
+	if(type(tree_ptr) != type_tok)
+	{
+		fprintf(stderr, "\nERROR: a '%s' is used where a '%s' is required\n", 
+			type_string(type(tree_ptr)), type_string(type_tok));
 		exit(0);
 	}
 }

@@ -69,6 +69,7 @@ int main()
 %token <sval> DOTDOT
 %token <sval> INTEGER
 %token <sval> REAL
+%token <sval> BOOL
 
 /* control flow keyword tokens */
 %token <sval> BEG END
@@ -288,13 +289,25 @@ stmt
 	| compound_stmt
 		{ $$ = $1; }
 	| IF expr THEN stmt
-		{ $$ = str_tree(IF, "if then", $2, $4); }
+		{
+			$$ = str_tree(IF, "if then", $2, $4);
+			enforce_type($2, BOOL);
+		}
 	| IF expr THEN stmt ELSE stmt
-		{ $$ = str_tree(IF, "if then-else", $2, str_tree(IF, "then else", $4, $6)); }
+		{
+			$$ = str_tree(IF, "if then-else", $2, str_tree(IF, "then else", $4, $6));
+			enforce_type($2, BOOL);
+		}
 	| WHILE expr DO stmt
-		{ $$ = str_tree(WHILE, "while do", $2, $4); }
+		{
+			$$ = str_tree(WHILE, "while do", $2, $4);
+			enforce_type($2, BOOL);
+		}
 	| REPEAT stmt UNTIL expr
-		{ $$ = str_tree(REPEAT, "repeat until", $2, $4); }
+		{
+			$$ = str_tree(REPEAT, "repeat until", $2, $4);
+			enforce_type($4, BOOL);
+		}
 	| FOR var ASSOP expr TO expr DO stmt
 		{
 			check_types($4, $6);

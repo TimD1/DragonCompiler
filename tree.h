@@ -9,6 +9,9 @@
 typedef struct tree_s {
 	/* token type */
 	int type;
+
+	/* codegen tree numbering */
+	int ershov_num;
 	
 	/* actual value of token */
 	union {
@@ -33,6 +36,7 @@ tree_t* empty_tree();
 void print_tree(tree_t *t, int spaces);
 int eval_tree(tree_t *expr);
 int type(tree_t* expr);
+void enforce_type(tree_t* expr, int type);
 void check_types(tree_t* left, tree_t* right);
 void check_args(entry_t* fn, tree_t* fn_call);
 void check_function(tree_t* head_ptr, tree_t* body_ptr);

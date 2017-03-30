@@ -247,6 +247,8 @@ char* type_string(int token)
 			return "int";
 		case STRING:
 			return "string";
+		case BOOL:
+			return "bool";
 		case PROGRAM:
 			return "i/o";
 		case EMPTY:
