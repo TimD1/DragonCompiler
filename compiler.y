@@ -149,14 +149,14 @@ ident_list
 		{
 			$$ = op_tree(LISTOP, ",", 
 					empty_tree(),
-					str_tree(IDENT, $1, NULL, NULL)
+					str_tree(IDENT, $1, empty_tree(), empty_tree())
 				);
 		}
 	| ident_list ',' IDENT
 		{
 			$$ = op_tree(LISTOP, ",", 
 					$1,
-					str_tree(IDENT, $3, NULL, NULL)
+					str_tree(IDENT, $3, empty_tree(), empty_tree())
 				);
 		}
 	;
@@ -186,14 +186,14 @@ type
 
 std_type
 	: INTEGER
-		{ $$ = str_tree(INTEGER, $1, NULL, NULL); }
+		{ $$ = str_tree(INTEGER, $1, empty_tree(), empty_tree()); }
 	| REAL
-		{ $$ = str_tree(REAL, $1, NULL, NULL); }
+		{ $$ = str_tree(REAL, $1, empty_tree(), empty_tree()); }
 	;
 
 subprogram_decls
 	: subprogram_decls subprogram_decl ';'
-		{ op_tree(LISTOP, "_", $1, $2); }
+		{ $$ = op_tree(LISTOP, "_", $1, $2); }
 	| /* empty */
 		{ $$ = empty_tree(); }
 	;
@@ -259,9 +259,7 @@ param
 
 compound_stmt
 	: BEG opt_stmts END
-		{
-			$$ = str_tree(BEG, "begin-end", $2, empty_tree());
-		}
+		{ $$ = str_tree(BEG, "begin-end", $2, empty_tree()); }
 	;
 
 opt_stmts
@@ -374,7 +372,7 @@ simple_expr
 	| simple_expr ADDOP term
 		{ $$ = op_tree(ADDOP, $2, $1, $3); }
 	| STRING							/* ? */
-		{ $$ = str_tree(STRING, $1, NULL, NULL); }
+		{ $$ = str_tree(STRING, $1, empty_tree(), empty_tree()); }
 	;
 
 term
@@ -403,21 +401,21 @@ factor
 
 id
 	: IDENT
-		{ $$ = str_tree(IDENT, $1, NULL, NULL); }
+		{ $$ = str_tree(IDENT, $1, empty_tree(), empty_tree()); }
 	;
 
 fn
 	: IDENT
-		{ $$ = str_tree(IDENT, $1, NULL, NULL); }
+		{ $$ = str_tree(IDENT, $1, empty_tree(), empty_tree()); }
 
 inum
 	: INUM
-		{ $$ = int_tree(INUM, $1, NULL, NULL); }
+		{ $$ = int_tree(INUM, $1, empty_tree(), empty_tree()); }
 	;
 
 rnum
 	: RNUM
-		{ $$ = float_tree(RNUM, $1, NULL, NULL); }
+		{ $$ = float_tree(RNUM, $1, empty_tree(), empty_tree()); }
 	;
 
 %%

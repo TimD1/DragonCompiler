@@ -110,7 +110,7 @@ tree_t *op_tree(int type, char* opval, tree_t *left, tree_t *right)
 
 void print_tree(tree_t *t, int spaces)
 {
-	if( t == NULL ) return;
+	if( t == NULL || t->type == EMPTY ) return;
 
 	if(spaces == 0)
 		fprintf(stderr, "\n\n\nSYNTAX TREE\n___________\n\n");
@@ -218,6 +218,7 @@ int type(tree_t* t)
 	case RNUM:
 	case STRING:
 	case EMPTY:
+	case BOOL:
 		return t->type;
 		break;
 
@@ -385,6 +386,13 @@ void enforce_type(tree_t* tree_ptr, int type_tok)
 /* Given a pointer to a function call in the syntax tree, and a pointer to the function's entry in the symbol table, check that it was called correctly. */
 void check_args(entry_t* fn, tree_t* fn_call)
 {
+	// function doesn't exist
+	if(fn == NULL)
+	{
+		fprintf(stderr, "\nERROR: function/procedure cannot be called before it is declared.\n");
+		exit(0);
+	}
+	
 	// check function has correct number of args
 	if(count_args(fn_call) != fn->arg_num)
 	{
