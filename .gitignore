@@ -5,5 +5,9 @@ y.*
 # object files
 *.o
 
+# ignore testing branch
+testing
+TODO.txt
+
 # final executable
 compiler
