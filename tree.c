@@ -410,3 +410,65 @@ void check_args(entry_t* fn, tree_t* fn_call)
 		fn_call = fn_call->left;
 	}
 }
+
+
+/* Return whether or not tree node is an EMPTY node */
+int empty(tree_t* t)
+{
+	/* consider a null pointer empty */
+	if(t == NULL)
+		return 1;
+	
+	return (t->type == EMPTY);
+}
+
+
+/* Return whether or not tree node is a leaf node,
+ 	which occurs when both of its children are empty. */
+int leaf_node(tree_t* t)
+{
+	/* consider a null pointer a leaf */
+	if(t == NULL)
+		return 1;
+	if(empty(t))
+		return 1;
+	
+	return (empty(t->left) && empty(t->right));
+}
+
+
+/* Determine Ershov number for each node in an expression, and mark the
+   tree node correspondingly */
+void number_tree(tree_t* t)
+{
+	if(t == NULL) { /* do nothing */ }
+	else if(empty(t)) { /* do nothing */ }
+	else if(empty(t->left)) // one option
+	{
+		number_tree(t->right);
+		t->ershov_num = t->right->ershov_num;
+	}
+	else if(empty(t->right)) // one option
+	{
+		number_tree(t->left);
+		t->ershov_num = t->left->ershov_num;
+	}
+	else if(leaf_node(t->left) && leaf_node(t->right)) // base case
+	{
+		t->ershov_num = 1;
+		t->left->ershov_num = 1;
+		t->right->ershov_num = 0;
+	}
+	else // choose max, or increment by one
+	{
+		// otherwise, number based on children
+		if(t->left->ershov_num > t->right->ershov_num)
+			t->ershov_num = t->left->ershov_num;
+		else if(t->left->ershov_num < t->right->ershov_num)
+			t->ershov_num = t->right->ershov_num;
+		else
+			t->ershov_num = t->left->ershov_num + 1;
+	}
+}
+
+//void gencode(

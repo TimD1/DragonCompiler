@@ -2,17 +2,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include "tree.h"
 #include "hash.h"
 #include "y.tab.h"
+
+extern int yylex();
+extern int yyparse();
+extern FILE* yyin;
+extern FILE* outfile;
+
 int yydebug = 1;
 
 int yywrap() { return 1; }
 
 void yyerror(const char *str) { fprintf(stderr, "error: %s\n", str); }
 
-int main() 
+int main(int argc, char** argv) 
 { 
+	// user must give single file name
+	if(argc != 2)
+		fprintf(stderr, "Incorrect number of arguments given.\n");
+	
+	// try to open file
+	FILE *infile = fopen(argv[1], "r");
+	if(!infile)
+	{
+		fprintf(stderr, "Invalid input file name given.\n");
+		return -1;
+	}
+
+	// create output file by changing extension
+	char* outfile_name = (char*)malloc(strlen(argv[1]));
+	strcpy(outfile_name, (char*)argv[1]);
+	outfile_name[strlen(outfile_name)-1] = 's';
+	FILE *outfile = fopen(outfile_name, "w");
+
 	/* Create base table for doubly linked "stack" of all tables 
 	   tables on top have narrower scope, and prev is the top table */
 	head_table = (table_t*)malloc(sizeof(table_t));
@@ -22,7 +47,10 @@ int main()
 	head_table->next = head_table;
 	head_table->id = -1;
 
-	yyparse();
+	// parse input file
+	yyin = infile;
+	do { yyparse(); }
+	while (!feof(yyin));
 }
 %}
 
@@ -354,6 +382,7 @@ expr
 		{ 
 			tree_t* t = $1;
 			type(t);
+			number_tree(t);
 			$$ = t;
 		}
 	| simple_expr RELOP simple_expr 	/* or.. recurse, allowing multiple relops */

@@ -1,6 +1,4 @@
 %{
-/* negative numbers */
-/* strings? not handled right */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -20,7 +18,7 @@ whitespace 	[ \t]+
 endline		[\r\n]
 string		"'"[a-zA-Z0-9 ]*"'"
 
- /* define exlusive comment states */
+ /* define exclusive comment states */
 %x		COMMENT1
 %x 		COMMENT2
 %x		COMMENT3
@@ -191,7 +189,7 @@ end				{
 
  /* identifier tokens */
 {identifier}	{
-					fprintf( stderr, " [IDENT:%s]", yylval.sval = strdup(yytext) );
+					fprintf( stderr, " [IDENT:%s]", yylval.sval = strdup(yytext));
 					return IDENT;
 				}
 {string}		{
@@ -202,7 +200,7 @@ end				{
  /* ignore whitespace and set default */
 {whitespace} 	{ ; }
 {endline} 		{
-					fprintf( stderr, "\n" );
+					fprintf( stderr, "\n%d ", yylineno );
 				}
 .				{
 					fprintf( stderr, " {%c}", yytext[0] );
