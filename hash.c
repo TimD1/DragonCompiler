@@ -7,7 +7,6 @@
 #include "y.tab.h"
 
 table_t* head_table;
-// didn't use strdup in many places, dependent on syntax tree staying
 
 /* Peter J. Weinberger's hash function, from Red Dragon Book */
 int hashpjw( char *s )
@@ -220,6 +219,7 @@ void print_table(table_t* table)
 	}
 	fprintf(stderr, "\n\n");
 }
+
 
 /* Given number of args and pointer to args, return string of concatenated types */
 char* arg_string(int argnum, int* args)
@@ -454,6 +454,7 @@ void make_function(tree_t* fn_ptr, tree_t* type_ptr)
 	}
 }
 
+
 /* Given pointer to PROCEDURE in syntax tree, add procedure to symbol table */
 void make_procedure(tree_t* proc_ptr)
 {
@@ -569,6 +570,7 @@ int count_args(tree_t* arg_ptr)
 	}
 	return count;
 }
+
 
 /* Returns a list of types, given a pointer to a function declaration 
    in the syntax tree. Also assumes no identifier lists are used. */

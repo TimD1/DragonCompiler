@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "tree.h"
 #include "y.tab.h"
+
 %}
 
  /* regular expressions */

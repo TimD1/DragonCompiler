@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+
 #include "tree.h"
 #include "y.tab.h"
 
@@ -169,6 +170,71 @@ void print_tree(tree_t *t, int spaces)
 	
 	print_tree(t->left, spaces+1);
 	print_tree(t->right, spaces+1);
+			
+}
+
+
+void debug_tree(tree_t *t, int spaces)
+{
+	if( t == NULL ) return;
+
+	if(spaces == 0)
+		fprintf(stderr, "\n\n\nDEBUG TREE\n___________\n\n");
+	
+	for(int i = 0; i < spaces; i++)
+		fprintf(stderr, "[ ");
+	
+	switch( t -> type ) {
+		case INUM: 		fprintf(stderr, "[INUM %d] %d", t->attribute.ival, t->ershov_num); break;
+		case RNUM: 		fprintf(stderr, "[RNUM %f] %d", t->attribute.fval, t->ershov_num); break;
+
+		case ADDOP: 	fprintf(stderr, "[ADDOP %s] %d", t->attribute.opval, t->ershov_num); break;
+		case MULOP: 	fprintf(stderr, "[MULOP %s] %d", t->attribute.opval, t->ershov_num); break;
+		case RELOP: 	fprintf(stderr, "[RELOP %s] %d", t->attribute.opval, t->ershov_num); break;
+		case ASSOP: 	fprintf(stderr, "[ASSOP %s]", t->attribute.opval); break;
+		case NOT: 		fprintf(stderr, "[NOT %s]", t->attribute.opval); break;
+		
+		case ARRAYOP: 	fprintf(stderr, "[ARRAYOP %s]", t->attribute.opval); break;
+		case PARENOP: 	fprintf(stderr, "[PARENOP %s]", t->attribute.opval); break;
+		case LISTOP: 	fprintf(stderr, "[LISTOP %s]", t->attribute.opval); break;
+
+		case IDENT: 	fprintf(stderr, "[IDENT %s] %d", t->attribute.sval, t->ershov_num); break;
+		case STRING: 	fprintf(stderr, "[STRING %s]", t->attribute.sval); break;
+
+		case PROGRAM: 	fprintf(stderr, "[PROGRAM %s]", t->attribute.sval); break;
+		case FUNCTION: 	fprintf(stderr, "[FUNCTION %s]", t->attribute.sval); break;
+		case PROCEDURE: fprintf(stderr, "[PROCEDURE %s]", t->attribute.sval); break;
+
+		case VAR: 		fprintf(stderr, "[VAR %s]", t->attribute.sval); break;
+		case ARRAY: 	fprintf(stderr, "[ARRAY %s]", t->attribute.sval); break;
+		case OF: 		fprintf(stderr, "[OF %s]", t->attribute.sval); break;
+		case DOTDOT: 	fprintf(stderr, "[DOTDOT %s]", t->attribute.sval); break;
+		case INTEGER: 	fprintf(stderr, "[INTEGER %s]", t->attribute.sval); break;
+		case REAL: 		fprintf(stderr, "[REAL %s]", t->attribute.sval); break;
+
+		case BEG: 		fprintf(stderr, "[BEG %s]", t->attribute.sval); break;
+		case END: 		fprintf(stderr, "[END %s]", t->attribute.sval); break;
+		case IF: 		fprintf(stderr, "[IF %s]", t->attribute.sval); break;
+		case THEN: 		fprintf(stderr, "[THEN %s]", t->attribute.sval); break;
+		case ELSE: 		fprintf(stderr, "[ELSE %s]", t->attribute.sval); break;
+		case DO: 		fprintf(stderr, "[DO %s]", t->attribute.sval); break;
+		case WHILE: 	fprintf(stderr, "[WHILE %s]", t->attribute.sval); break;
+		case FOR: 		fprintf(stderr, "[FOR %s]", t->attribute.sval); break;
+		case DOWNTO: 	fprintf(stderr, "[DOWNTO %s]", t->attribute.sval); break;
+		case TO: 		fprintf(stderr, "[TO %s]", t->attribute.sval); break;
+		case REPEAT: 	fprintf(stderr, "[REPEAT %s]", t->attribute.sval); break;
+		case UNTIL: 	fprintf(stderr, "[UNTIL %s]", t->attribute.sval); break;
+
+		case EMPTY:		fprintf(stderr, "[EMPTY] %d", t->ershov_num); break;
+
+		default:
+			fprintf(stderr, "[UNKNOWN]\n" );
+			exit(1);
+	}
+	fprintf(stderr, "\n");
+	
+	debug_tree(t->left, spaces+1);
+	debug_tree(t->right, spaces+1);
 			
 }
 
@@ -441,26 +507,58 @@ int leaf_node(tree_t* t)
    tree node correspondingly */
 void number_tree(tree_t* t)
 {
+	// handle empty or short expressions
 	if(t == NULL) { /* do nothing */ }
-	else if(empty(t)) { /* do nothing */ }
-	else if(empty(t->left)) // one option
+	else if(empty(t)) { t->ershov_num == 0; }
+	else if(leaf_node(t)) { t->ershov_num = 0; }
+
+	// handle unary operators
+	else if(empty(t->left) && !empty(t->right))
 	{
 		number_tree(t->right);
 		t->ershov_num = t->right->ershov_num;
 	}
-	else if(empty(t->right)) // one option
+	else if(empty(t->right) && !empty(t->left))
 	{
 		number_tree(t->left);
 		t->ershov_num = t->left->ershov_num;
 	}
-	else if(leaf_node(t->left) && leaf_node(t->right)) // base case
+	
+	// handle base case
+	else if(leaf_node(t->left) && leaf_node(t->right))
 	{
 		t->ershov_num = 1;
 		t->left->ershov_num = 1;
 		t->right->ershov_num = 0;
 	}
-	else // choose max, or increment by one
+
+	// only left child is a leaf
+	else if(leaf_node(t->left) && !leaf_node(t->right))
 	{
+		t->left->ershov_num = 1;
+		number_tree(t->right);
+		t->ershov_num = t->right->ershov_num;
+		
+		if(t->left->ershov_num < t->right->ershov_num)
+			t->ershov_num = t->right->ershov_num;
+		else
+			t->ershov_num = t->left->ershov_num + 1;
+	}
+
+	// only right child is a leaf
+	else if(leaf_node(t->right) && !leaf_node(t->left))
+	{
+		t->right->ershov_num = 0;
+		number_tree(t->left);
+		t->ershov_num = t->left->ershov_num;
+	}
+
+	// handle internal nodes
+	else
+	{
+		number_tree(t->left);
+		number_tree(t->right);
+
 		// otherwise, number based on children
 		if(t->left->ershov_num > t->right->ershov_num)
 			t->ershov_num = t->left->ershov_num;
@@ -470,5 +568,3 @@ void number_tree(tree_t* t)
 			t->ershov_num = t->left->ershov_num + 1;
 	}
 }
-
-//void gencode(

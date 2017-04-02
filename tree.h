@@ -34,11 +34,13 @@ tree_t* empty_tree();
 
 
 void print_tree(tree_t *t, int spaces);
+void debug_tree(tree_t *t, int spaces);
 void number_tree(tree_t *t);
 int eval_tree(tree_t *expr);
 
 int type(tree_t* expr);
 int empty(tree_t* node);
+int leaf_node(tree_t* node);
 void enforce_type(tree_t* expr, int type);
 void check_types(tree_t* left, tree_t* right);
 void check_args(entry_t* fn, tree_t* fn_call);

@@ -3,14 +3,16 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+
 #include "tree.h"
 #include "hash.h"
+#include "reg_stack.h"
+#include "code.h"
 #include "y.tab.h"
 
 extern int yylex();
 extern int yyparse();
 extern FILE* yyin;
-extern FILE* outfile;
 
 int yydebug = 1;
 
@@ -22,21 +24,24 @@ int main(int argc, char** argv)
 { 
 	// user must give single file name
 	if(argc != 2)
+	{
 		fprintf(stderr, "Incorrect number of arguments given.\n");
+		exit(1);
+	}
 	
 	// try to open file
 	FILE *infile = fopen(argv[1], "r");
 	if(!infile)
 	{
 		fprintf(stderr, "Invalid input file name given.\n");
-		return -1;
+		exit(1);
 	}
 
 	// create output file by changing extension
 	char* outfile_name = (char*)malloc(strlen(argv[1]));
 	strcpy(outfile_name, (char*)argv[1]);
 	outfile_name[strlen(outfile_name)-1] = 's';
-	FILE *outfile = fopen(outfile_name, "w");
+	outfile = fopen(outfile_name, "w");
 
 	/* Create base table for doubly linked "stack" of all tables 
 	   tables on top have narrower scope, and prev is the top table */
@@ -47,10 +52,22 @@ int main(int argc, char** argv)
 	head_table->next = head_table;
 	head_table->id = -1;
 
+	// set up register stack
+	rstack = (stack_t*)malloc(sizeof(stack_t));
+	for(int i = 0; i < MAX_REGS; i++)
+		rstack->reg[i] = i;
+	rstack->top_idx = MAX_REGS-1;
+
 	// parse input file
+	fprintf(stderr, "TOKENIZATION\n____________\n\n");
 	yyin = infile;
+	file_header(argv[1]);
 	do { yyparse(); }
 	while (!feof(yyin));
+	file_footer();
+	
+	fclose(infile);
+	fclose(outfile);
 }
 %}
 
@@ -155,7 +172,7 @@ int main(int argc, char** argv)
 
 start
 	: program
-		{ print_tree($1, 0); }
+		{ print_tree($1, 0); fprintf(stderr, "\n\n\n"); exit(0); }
 
 program
 	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
@@ -308,6 +325,7 @@ stmt
 	: var ASSOP expr
 		{ 
 			check_types($1, $3);
+			gencode($3);
 			$$ = op_tree(ASSOP, $2, $1, $3);
 		}
 	| procedure_stmt
@@ -381,8 +399,8 @@ expr
 	: simple_expr
 		{ 
 			tree_t* t = $1;
-			type(t);
 			number_tree(t);
+			type(t);
 			$$ = t;
 		}
 	| simple_expr RELOP simple_expr 	/* or.. recurse, allowing multiple relops */
