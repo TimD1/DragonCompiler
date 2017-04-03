@@ -5,6 +5,8 @@
 #include "tree.h"
 #include "y.tab.h"
 
+int function_id = 1;
+
 %}
 
  /* regular expressions */
@@ -85,12 +87,14 @@ program			{
 				}
 function		{
 					fprintf( stderr, " [FUNCTION]" );
-					yylval.sval = strdup(yytext);
+					yylval.ival = function_id;
+					function_id++;
 					return FUNCTION;
 				}
 procedure		{
 					fprintf( stderr, " [PROCEDURE]" );
-					yylval.sval = strdup(yytext);
+					yylval.ival = function_id;
+					function_id++;
 					return PROCEDURE;
 				}
 

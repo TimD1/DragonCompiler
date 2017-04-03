@@ -24,6 +24,52 @@ void file_footer()
 	fprintf(outfile, "\t.section\t.note.GNU-stack,\"\",@progbits");
 }
 
+void function_header(tree_t* n)
+{
+	tree_t* name_ptr = n->left;
+	if(name_ptr->type == PARENOP)
+		name_ptr = name_ptr->left;
+	if(name_ptr->type != IDENT)
+	{
+		fprintf(stderr, "\nERROR: function name expected.\n");
+		exit(1);
+	}
+
+	char* fn_name = name_ptr->attribute.sval;
+
+	fprintf(outfile, "\n\n\t.globl\t%s\n", fn_name);
+	fprintf(outfile, "\t.type\t%s, @function\n", fn_name);
+	fprintf(outfile, "%s:\n", fn_name);
+	fprintf(outfile, ".LFB%d:\n", n->attribute.ival);
+	fprintf(outfile, "\t.cfi_startproc\n");
+	fprintf(outfile, "\tpush\trbp\n");
+	fprintf(outfile, "\t.cfi_def_cfa_offset 16\n");
+	fprintf(outfile, "\t.cfi_offset 6, -16\n");
+	fprintf(outfile, "\tmov rbp, rsp\n");
+	fprintf(outfile, "\t.cfi_def_cfa_register 6\n\n");
+}
+
+void function_footer(tree_t* n)
+{
+	tree_t* name_ptr = n->left;
+	if(name_ptr->type == PARENOP)
+		name_ptr = name_ptr->left;
+	if(name_ptr->type != IDENT)
+	{
+		fprintf(stderr, "\nERROR: function name expected.\n");
+		exit(1);
+	}
+
+	char* fn_name = name_ptr->attribute.sval;
+
+	fprintf(outfile, "\n\n\tpop rbp\n");
+	fprintf(outfile, "\t.cfi_def_cfa 7, 8\n");
+	fprintf(outfile, "\tret\n");
+	fprintf(outfile, "\t.cfi_endproc\n");
+	fprintf(outfile, ".LFE%d:\n", n->attribute.ival);
+	fprintf(outfile, "\t.size\t%s, .-%s\n\n", fn_name, fn_name);
+}
+
 char* ia64(char* opval)
 {
 	if(!strcmp(opval, "+"))
@@ -57,6 +103,13 @@ char* string_value(tree_t* n)
 		default:
 			return strdup("???");
 	}
+}
+
+
+void assignment_gencode(tree_t* n)
+{
+	gencode(n->right);
+	fprintf(outfile, "\tmov %s, %s\n", reg_string(top(rstack)), string_value(n->left));
 }
 
 

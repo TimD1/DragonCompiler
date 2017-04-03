@@ -105,8 +105,8 @@ int main(int argc, char** argv)
 
 /* general keyword tokens */
 %token <sval> PROGRAM
-%token <sval> FUNCTION
-%token <sval> PROCEDURE
+%token <ival> FUNCTION  /* count functions and procedures for code generation */
+%token <ival> PROCEDURE
 
 /* variable and array keyword tokens */
 %token <sval> VAR
@@ -172,7 +172,7 @@ int main(int argc, char** argv)
 
 start
 	: program
-		{ print_tree($1, 0); fprintf(stderr, "\n\n\n"); exit(0); }
+		{ print_tree($1, 0); }
 
 program
 	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
@@ -244,12 +244,13 @@ subprogram_decls
 	;
 
 subprogram_decl
-	: subprogram_head decls subprogram_decls compound_stmt
+	: subprogram_head { function_header($1); } decls subprogram_decls compound_stmt
 		{
-			check_function($1, $4);
+			check_function($1, $5);
+			function_footer($1);
 			$$ = op_tree(LISTOP, "_", $1, 
-					op_tree(LISTOP, "_", $2, 
-						op_tree(LISTOP, "_", $3, $4)
+					op_tree(LISTOP, "_", $3, 
+						op_tree(LISTOP, "_", $4, $5)
 					)
 				 );
 			print_table(top_table());
@@ -260,12 +261,12 @@ subprogram_decl
 subprogram_head
 	: FUNCTION fn_header ':' std_type ';'
 		{
-			$$ = str_tree(FUNCTION, "function type", $2, $4);
+			$$ = int_tree(FUNCTION, $1, $2, $4);
 			make_function($2, $4);
 		}
 	| PROCEDURE proc_header ';'
 		{
-			$$ = str_tree(PROCEDURE, $1, $2, empty_tree());
+			$$ = int_tree(PROCEDURE, $1, $2, empty_tree());
 			make_procedure($2);
 		}
 	;
@@ -325,8 +326,8 @@ stmt
 	: var ASSOP expr
 		{ 
 			check_types($1, $3);
-			gencode($3);
 			$$ = op_tree(ASSOP, $2, $1, $3);
+			assignment_gencode($$);
 		}
 	| procedure_stmt
 		{ $$ = $1; }

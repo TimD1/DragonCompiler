@@ -137,8 +137,8 @@ void print_tree(tree_t *t, int spaces)
 		case STRING: 	fprintf(stderr, "[STRING %s]", t->attribute.sval); break;
 
 		case PROGRAM: 	fprintf(stderr, "[PROGRAM %s]", t->attribute.sval); break;
-		case FUNCTION: 	fprintf(stderr, "[FUNCTION %s]", t->attribute.sval); break;
-		case PROCEDURE: fprintf(stderr, "[PROCEDURE %s]", t->attribute.sval); break;
+		case FUNCTION: 	fprintf(stderr, "[FUNCTION %d]", t->attribute.ival); break;
+		case PROCEDURE: fprintf(stderr, "[PROCEDURE %d]", t->attribute.ival); break;
 
 		case VAR: 		fprintf(stderr, "[VAR %s]", t->attribute.sval); break;
 		case ARRAY: 	fprintf(stderr, "[ARRAY %s]", t->attribute.sval); break;
@@ -202,8 +202,8 @@ void debug_tree(tree_t *t, int spaces)
 		case STRING: 	fprintf(stderr, "[STRING %s]", t->attribute.sval); break;
 
 		case PROGRAM: 	fprintf(stderr, "[PROGRAM %s]", t->attribute.sval); break;
-		case FUNCTION: 	fprintf(stderr, "[FUNCTION %s]", t->attribute.sval); break;
-		case PROCEDURE: fprintf(stderr, "[PROCEDURE %s]", t->attribute.sval); break;
+		case FUNCTION: 	fprintf(stderr, "[FUNCTION %d]", t->attribute.ival); break;
+		case PROCEDURE: fprintf(stderr, "[PROCEDURE %d]", t->attribute.ival); break;
 
 		case VAR: 		fprintf(stderr, "[VAR %s]", t->attribute.sval); break;
 		case ARRAY: 	fprintf(stderr, "[ARRAY %s]", t->attribute.sval); break;
@@ -510,7 +510,7 @@ void number_tree(tree_t* t)
 	// handle empty or short expressions
 	if(t == NULL) { /* do nothing */ }
 	else if(empty(t)) { t->ershov_num == 0; }
-	else if(leaf_node(t)) { t->ershov_num = 0; }
+	else if(leaf_node(t)) { t->ershov_num = 1; }
 
 	// handle unary operators
 	else if(empty(t->left) && !empty(t->right))
