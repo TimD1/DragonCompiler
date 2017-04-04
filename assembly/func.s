@@ -1,41 +1,25 @@
 	.file	"func.c"
 	.intel_syntax noprefix
 	.text
-	
 
 	.globl	increment
 	.type	increment, @function
 increment:
-.LFB0:
-	.cfi_startproc
 	push	rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
 	mov	rbp, rsp
-	.cfi_def_cfa_register 6
-
 	mov	DWORD PTR [rbp-4], edi
 	mov	eax, DWORD PTR [rbp-4]
 	add	eax, 1
-	
 	pop	rbp
-	.cfi_def_cfa 7, 8
 	ret
-	.cfi_endproc
-.LFE0:
 	.size	increment, .-increment
-	
-	
+
+
 	.globl	complicated_operation
 	.type	complicated_operation, @function
 complicated_operation:
-.LFB1:
-	.cfi_startproc
 	push	rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
 	mov	rbp, rsp
-	.cfi_def_cfa_register 6
 	mov	DWORD PTR [rbp-4], edi
 	mov	DWORD PTR [rbp-8], esi
 	mov	DWORD PTR [rbp-12], edx
@@ -54,26 +38,16 @@ complicated_operation:
 	mov	eax, ecx
 	sub	DWORD PTR [rbp-4], eax
 	mov	eax, DWORD PTR [rbp-4]
-	
 	pop	rbp
-	.cfi_def_cfa 7, 8
 	ret
-	.cfi_endproc
-.LFE1:
 	.size	complicated_operation, .-complicated_operation
 
 
 	.globl	main
 	.type	main, @function
 main:
-.LFB2:
-	.cfi_startproc
 	push	rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
 	mov	rbp, rsp
-	.cfi_def_cfa_register 6
-	
 	sub	rsp, 32
 	mov	DWORD PTR [rbp-24], 2
 	mov	eax, DWORD PTR [rbp-24]
@@ -99,15 +73,10 @@ main:
 	mov	r8d, edi
 	mov	edi, eax
 	call	complicated_operation
-	
 	mov	eax, 0
 	leave
-	.cfi_def_cfa 7, 8
 	ret
-	.cfi_endproc
-.LFE2:
 	.size	main, .-main
-	
-	
+
 	.ident	"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.4) 5.4.0 20160609"
 	.section	.note.GNU-stack,"",@progbits
