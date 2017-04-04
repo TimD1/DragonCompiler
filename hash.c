@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "hash.h"
+#include "gencode.h"
 #include "tree.h"
 #include "y.tab.h"
 
@@ -36,6 +37,7 @@ table_t* push_table(char* name, int class)
 		ptr->hash_table[i] = NULL;
 	ptr->table_name = strdup(name);
 	ptr->table_class = class;
+	ptr->table_size = 0;
 
 	// set new table's pointers
 	ptr->next = head_table;
@@ -378,6 +380,9 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 
 	else // create new entry
 	{
+		table->table_size++;
+		entry_ptr->id = table->table_size;
+
 		entry_t* last_entry = table->hash_table[ hashpjw(entry_ptr->entry_name) ];
 		// if list non-empty, append to end
 		if(last_entry != NULL)
@@ -681,6 +686,7 @@ void add_io(tree_t* ident_list_ptr)
 
 		ident_list_ptr = ident_list_ptr->left;
 	}
+	add_io_code();
 }
 
 
@@ -812,8 +818,10 @@ void make_var_io(char* name)
 	ptr->next = NULL;
 
 	// not applicable
-	ptr->arg_num = 0;
-	ptr->arg_types = NULL;
+	ptr->arg_num = 1;
+	int* args = (int*)malloc(sizeof(int));
+	args[0] = INUM;
+	ptr->arg_types = args;
 	ptr->start_idx = 0;
 	ptr->stop_idx = 0;
 
@@ -892,4 +900,13 @@ void make_arr_rnum(char* name, int start_idx, int stop_idx)
 	ptr->arg_types = NULL;
 
 	insert_entry(ptr, top_table());
+}
+
+int get_entry_id(char* name)
+{
+	entry_t* entry_ptr = get_entry(top_table(), name);
+	if(entry_ptr != NULL)
+	{
+		return entry_ptr->id;
+	}
 }

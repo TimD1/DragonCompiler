@@ -23,6 +23,7 @@ typedef struct entry_s {
 	int entry_class;	// type 					function, array, var  ...param?
 	value entry_value;  // value					13, 3.1415, 'Sam'
 	int return_type;	// return type				RNUM, INUM
+	int id;
 	
 	// functions only
 	int arg_num;		// number of arguments		0, 5
@@ -39,6 +40,7 @@ typedef struct entry_s {
 typedef struct table_s {
 	entry_t *hash_table[ TABLE_SIZE ];
 	int id;
+	int table_size;
 	char* table_name;
 	int table_class;
 
@@ -73,6 +75,7 @@ void make_arr_inum(char* name, int start_idx, int stop_idx);
 void make_arr_rnum(char* name, int start_idx, int stop_idx);
 
 entry_t* get_entry(table_t* table, char* name);
+int get_entry_id(char* name);
 entry_t* find_entry(table_t* table, char* name); 
 int insert_entry(entry_t* entry_ptr, table_t* table);
 

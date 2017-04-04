@@ -7,7 +7,7 @@
 #include "tree.h"
 #include "hash.h"
 #include "reg_stack.h"
-#include "code.h"
+#include "gencode.h"
 #include "y.tab.h"
 
 extern int yylex();
@@ -175,15 +175,15 @@ start
 		{ print_tree($1, 0); }
 
 program
-	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' ';' decls subprogram_decls compound_stmt '.'
+	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' { add_io($5); } ';' decls subprogram_decls { main_header(); } compound_stmt '.'
 		{
-			add_io($5);
 			$$ = str_tree(PROGRAM, "head body",
 					op_tree(PARENOP, "()", $2, $5),
 					str_tree(PROGRAM, "decls compound_stmt",
-						str_tree(PROGRAM, "decls sub_decls", $8, $9),
-					$10)
+						str_tree(PROGRAM, "decls sub_decls", $9, $10),
+					$12)
 				);
+			main_footer();
 			print_table(top_table());
 			pop_table();
 		}
@@ -244,13 +244,12 @@ subprogram_decls
 	;
 
 subprogram_decl
-	: subprogram_head { function_header($1); } decls subprogram_decls compound_stmt
+	: subprogram_head { function_header($1); } decls { function_footer($1); } subprogram_decls compound_stmt
 		{
-			check_function($1, $5);
-			function_footer($1);
+			check_function($1, $6);
 			$$ = op_tree(LISTOP, "_", $1, 
 					op_tree(LISTOP, "_", $3, 
-						op_tree(LISTOP, "_", $4, $5)
+						op_tree(LISTOP, "_", $5, $6)
 					)
 				 );
 			print_table(top_table());
@@ -386,6 +385,7 @@ procedure_stmt
 			$$ = op_tree(PARENOP, "()", $1, $3);
 			entry_t* fn_entry = find_entry(top_table(), $1->attribute.sval);
 			check_args(fn_entry, $3);
+			copy_params_code($$);
 		}
 	;
 
