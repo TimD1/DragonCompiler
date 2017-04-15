@@ -40,7 +40,7 @@ FILE* outfile;
 /* Print this code at the start of the assembly file */
 void file_header(char* filename)
 {
-	fprintf(outfile, "# file header\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "# file header\n");
 	fprintf(outfile, "\t.file\t\"%s\"\n", filename);
 	fprintf(outfile, "\t.intel_syntax noprefix\n\n");
 }
@@ -51,7 +51,7 @@ void add_io_code()
 {
 	if(get_entry(top_table(), "write") || get_entry(top_table(), "read"))
 	{
-		fprintf(outfile, "# create io format strings\n");
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# create io format strings\n");
 		fprintf(outfile, "\t.section\t.rodata\n");
 		fprintf(outfile, ".LC0: # reading\n");
 		fprintf(outfile, "\t.string \"%%d\"\n");
@@ -65,7 +65,7 @@ void add_io_code()
 /* Print this code at the end of the assembly file */
 void file_footer()
 {
-	fprintf(outfile, "\n# file footer\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# file footer\n");
 	fprintf(outfile, "\t.ident\t\"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.4) 5.4.0 20160609\"\n");
 	fprintf(outfile, "\n\t.section\t.note.GNU-stack,\"\",@progbits\n");
 }
@@ -86,7 +86,7 @@ void function_header(tree_t* n)
 	char* fn_name = name_ptr->attribute.sval;
 
 	// print function header info
-	fprintf(outfile, "\n# function header\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# function header\n");
 	fprintf(outfile, "\t.globl\t%s\n", fn_name);
 	fprintf(outfile, "\t.type\t%s, @function\n", fn_name);
 	fprintf(outfile, "%s:\n", fn_name);
@@ -94,7 +94,7 @@ void function_header(tree_t* n)
 	fprintf(outfile, "\tmov rbp, rsp\n\n");
 
 	// copy values from registers to local parameters
-	fprintf(outfile, "\n# copy for function: register -> parameter\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# copy for function: register -> parameter\n");
 	static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
 	entry_t* entry_ptr = find_entry(top_table(), fn_name);
 	if(entry_ptr != NULL)
@@ -121,7 +121,7 @@ void function_footer(tree_t* n)
 
 	char* fn_name = name_ptr->attribute.sval;
 
-	fprintf(outfile, "\n# function footer\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# function footer\n");
 	fprintf(outfile, "\tpop rbp\n");
 	fprintf(outfile, "\tret\n");
 	fprintf(outfile, "\t.size\t%s, .-%s\n\n\n", fn_name, fn_name);
@@ -131,20 +131,20 @@ void function_footer(tree_t* n)
 /* Print this code at the start of the main function */
 void main_header()
 {
-	fprintf(outfile, "\n# main header\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# main header\n");
 	fprintf(outfile, "\t.globl\tmain\n");
 	fprintf(outfile, "\t.type\tmain, @function\n");
 	fprintf(outfile, "main:\n");
 	fprintf(outfile, "\tpush\trbp\n");
 	fprintf(outfile, "\tmov rbp, rsp\n");
-	fprintf(outfile, "\n# main code\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# main code\n");
 }
 
 
 /* Print this code at the end of the main function */
 void main_footer()
 {
-	fprintf(outfile, "\n# main footer\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# main footer\n");
 	fprintf(outfile, "\tmov eax, 0\n");
 	fprintf(outfile, "\tpop rbp\n");
 	fprintf(outfile, "\tret\n");
@@ -206,7 +206,9 @@ char* var_to_assembly(char* name)
 /* Given pointer to assignment statement, assign rval to left */
 void assignment_gencode(tree_t* n)
 {
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# evaluate expression\n");
 	gencode(n->right);
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# assignment\n");
 	fprintf(outfile, "\tmov %s, %s\n", string_value(n->left), reg_string(top(rstack)));
 }
 
@@ -219,7 +221,7 @@ void call_procedure(tree_t* n)
 	if(n->type != PARENOP)
 	{	
 		char* name = strdup(n->attribute.sval);
-		fprintf(outfile, "\n# call procedure '%s'\n", name);
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name);
 		fprintf(outfile, "\tcall\t%s\n\n", name);
 		return;
 	}
@@ -229,7 +231,7 @@ void call_procedure(tree_t* n)
 	if(!strcmp(name, "read")) // special case
 	{
 		char* var_name = n->right->right->attribute.sval;
-		fprintf(outfile, "\n# call 'read' using fscanf\n");
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# call 'read' using fscanf\n");
 		fprintf(outfile, "\tlea rdx, [rbp-%d]\n", get_entry_id(var_name)*4);
 		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC0\n");
 		fprintf(outfile, "\tmov rdi, QWORD PTR stdin[rip]\n");
@@ -239,7 +241,7 @@ void call_procedure(tree_t* n)
 	else if(!strcmp(name, "write")) // special case
 	{
 		tree_t* var_ptr = n->right->right;
-		fprintf(outfile, "\n# call 'write' using fprintf\n");
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# call 'write' using fprintf\n");
 		fprintf(outfile, "\tmov edx, %s\n", string_value(var_ptr));
 		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC1\n");
 		fprintf(outfile, "\tmov rdi, QWORD PTR stderr[rip]\n");
@@ -248,7 +250,7 @@ void call_procedure(tree_t* n)
 	}
 	else // normal function
 	{
-		fprintf(outfile, "\n# call procedure '%s'\n", name);
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name);
 		entry_t* entry_ptr = find_entry(top_table(), name);
 		if(entry_ptr != NULL) // function valid
 		{

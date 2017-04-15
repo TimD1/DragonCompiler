@@ -330,7 +330,10 @@ stmt
 			assignment_gencode($$);
 		}
 	| procedure_stmt
-		{ $$ = $1; }
+		{ 
+			$$ = $1;
+			call_procedure($$);
+		}
 	| compound_stmt
 		{ $$ = $1; }
 	| IF expr THEN stmt
@@ -379,17 +382,12 @@ var
 	;
 
 procedure_stmt
-	: id
-		{ 
-			$$ = $1;
-			call_procedure($$);
-		}
+	: id { $$ = $1; }
 	| id '(' expr_list ')'
 		{ 
 			$$ = op_tree(PARENOP, "()", $1, $3);
 			entry_t* fn_entry = find_entry(top_table(), $1->attribute.sval);
 			check_args(fn_entry, $3);
-			call_procedure($$);
 		}
 	;
 

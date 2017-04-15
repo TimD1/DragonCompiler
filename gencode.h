@@ -13,6 +13,7 @@ typedef struct record_s {
 
 /* GLOBALS */
 extern FILE* outfile;
+#define GENCODE_DEBUG 1
 
 
 /* FUNCTIONS */
