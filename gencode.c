@@ -11,9 +11,36 @@
 
 FILE* outfile;
 
+/* 
+   	REGISTERS
+   	---------
+	
+	eax = return value
+	rbx = save for later
+	rsp = stack pointer
+	rbp = base pointer
+	rip = instruction pointer
+
+	edi	= 1st argument
+	esi	= 2nd argument
+	edx	= 3rd argument
+	ecx	= 4th argument
+	r8d	= 5th argument
+	r9d	= 6th argument
+
+	r10d = temp var (top of stack)
+	r11d = temp var
+	r12d = temp var
+	r13d = temp var
+	r14d = temp var
+	r15d = temp var (bottom of stack)
+*/
+
+
 /* Print this code at the start of the assembly file */
 void file_header(char* filename)
 {
+	fprintf(outfile, "# file header\n");
 	fprintf(outfile, "\t.file\t\"%s\"\n", filename);
 	fprintf(outfile, "\t.intel_syntax noprefix\n\n");
 }
@@ -22,15 +49,14 @@ void file_header(char* filename)
 /* Add input and output functions if passed as parameters to main */
 void add_io_code()
 {
-	if(get_entry(top_table(), "input"))
+	if(get_entry(top_table(), "write") || get_entry(top_table(), "read"))
 	{
-
-	}
-	if(get_entry(top_table(), "output"))
-	{
+		fprintf(outfile, "# create io format strings\n");
 		fprintf(outfile, "\t.section\t.rodata\n");
-		fprintf(outfile, ".LC0:\n");
+		fprintf(outfile, ".LC0: # reading\n");
 		fprintf(outfile, "\t.string \"%%d\"\n");
+		fprintf(outfile, ".LC1: # writing\n");
+		fprintf(outfile, "\t.string \"%%d\\n\"\n");
 	}
 	fprintf(outfile, "\t.text\n\n\n");
 }
@@ -39,6 +65,7 @@ void add_io_code()
 /* Print this code at the end of the assembly file */
 void file_footer()
 {
+	fprintf(outfile, "\n# file footer\n");
 	fprintf(outfile, "\t.ident\t\"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.4) 5.4.0 20160609\"\n");
 	fprintf(outfile, "\n\t.section\t.note.GNU-stack,\"\",@progbits\n");
 }
@@ -58,16 +85,25 @@ void function_header(tree_t* n)
 
 	char* fn_name = name_ptr->attribute.sval;
 
+	// print function header info
+	fprintf(outfile, "\n# function header\n");
 	fprintf(outfile, "\t.globl\t%s\n", fn_name);
 	fprintf(outfile, "\t.type\t%s, @function\n", fn_name);
 	fprintf(outfile, "%s:\n", fn_name);
-	//fprintf(outfile, ".LFB%d:\n", n->attribute.ival);
-	//fprintf(outfile, "\t.cfi_startproc\n");
 	fprintf(outfile, "\tpush\trbp\n");
-	//fprintf(outfile, "\t.cfi_def_cfa_offset 16\n");
-	//fprintf(outfile, "\t.cfi_offset 6, -16\n");
 	fprintf(outfile, "\tmov rbp, rsp\n\n");
-	//fprintf(outfile, "\t.cfi_def_cfa_register 6\n\n");
+
+	// copy values from registers to local parameters
+	fprintf(outfile, "\n# copy for function: register -> parameter\n");
+	static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
+	entry_t* entry_ptr = find_entry(top_table(), fn_name);
+	if(entry_ptr != NULL)
+	{
+		for(int i = 0; i < entry_ptr->arg_num; i++)
+		{
+			fprintf(outfile, "\tmov DWORD PTR [rbp-%d], %s\n", 4*(i+1), arg_regs[i]);
+		}
+	}
 }
 
 
@@ -85,11 +121,9 @@ void function_footer(tree_t* n)
 
 	char* fn_name = name_ptr->attribute.sval;
 
+	fprintf(outfile, "\n# function footer\n");
 	fprintf(outfile, "\tpop rbp\n");
-	//fprintf(outfile, "\t.cfi_def_cfa 7, 8\n");
 	fprintf(outfile, "\tret\n");
-	//fprintf(outfile, "\t.cfi_endproc\n");
-	//fprintf(outfile, ".LFE%d:\n", n->attribute.ival);
 	fprintf(outfile, "\t.size\t%s, .-%s\n\n\n", fn_name, fn_name);
 }
 
@@ -97,28 +131,23 @@ void function_footer(tree_t* n)
 /* Print this code at the start of the main function */
 void main_header()
 {
+	fprintf(outfile, "\n# main header\n");
 	fprintf(outfile, "\t.globl\tmain\n");
 	fprintf(outfile, "\t.type\tmain, @function\n");
 	fprintf(outfile, "main:\n");
-	//fprintf(outfile, ".LFB0:\n");
-	//fprintf(outfile, "\t.cfi_startproc\n");
 	fprintf(outfile, "\tpush\trbp\n");
-	//fprintf(outfile, "\t.cfi_def_cfa_offset 16\n");
-	//fprintf(outfile, "\t.cfi_offset 6, -16\n");
-	fprintf(outfile, "\tmov rbp, rsp\n\n");
-	//fprintf(outfile, "\t.cfi_def_cfa_register 6\n\n");
+	fprintf(outfile, "\tmov rbp, rsp\n");
+	fprintf(outfile, "\n# main code\n");
 }
 
 
 /* Print this code at the end of the main function */
 void main_footer()
 {
+	fprintf(outfile, "\n# main footer\n");
 	fprintf(outfile, "\tmov eax, 0\n");
 	fprintf(outfile, "\tpop rbp\n");
-	//fprintf(outfile, "\t.cfi_def_cfa 7, 8\n");
 	fprintf(outfile, "\tret\n");
-	//fprintf(outfile, "\t.cfi_endproc\n");
-	//fprintf(outfile, ".LFE0:\n");
 	fprintf(outfile, "\n\t.size\tmain, .-main\n\n\n");
 }
 
@@ -155,7 +184,7 @@ char* string_value(tree_t* n)
 		
 		case IDENT:
 		case STRING:
-			return strdup(n->attribute.sval);
+			return var_to_assembly(n->attribute.sval);
 		default:
 			return strdup("???");
 	}
@@ -170,7 +199,6 @@ char* var_to_assembly(char* name)
 	sprintf(num, "%d", get_entry_id(name)*4);
 	strcat(str, num);
 	strcat(str, "]");
-	fprintf(stderr, "%s\n", str);
 	return strdup(str);
 }
 
@@ -184,27 +212,54 @@ void assignment_gencode(tree_t* n)
 
 
 /* Given pointer to procedure call, copy params into correct registers
-   before calling procedure */
-void copy_params_code(tree_t* n)
+   before calling it. If it's 'write' or 'read', use overloaded fprintf. */
+void call_procedure(tree_t* n)
 {
-	char* name = strdup(n->left->attribute.sval);
-	if(!strcmp(name, "input"))
-	{
+	// if procedure takes no arguments, there's nothing to do
+	if(n->type != PARENOP)
+	{	
+		char* name = strdup(n->attribute.sval);
+		fprintf(outfile, "\n# call procedure '%s'\n", name);
+		fprintf(outfile, "\tcall\t%s\n\n", name);
+		return;
 	}
-	else if(!strcmp(name, "output"))
+
+	static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
+	char* name = strdup(n->left->attribute.sval);
+	if(!strcmp(name, "read")) // special case
 	{
-		fprintf(outfile, "\tmov edx, 42\n");
-		fprintf(outfile, "\tmov esi, OFFSET_FLAT:.LC0\n");
-		fprintf(outfile, "\tmov rdi QWORD PTR stderr[rip]\n");
+		char* var_name = n->right->right->attribute.sval;
+		fprintf(outfile, "\n# call 'read' using fscanf\n");
+		fprintf(outfile, "\tlea rdx, [rbp-%d]\n", get_entry_id(var_name)*4);
+		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC0\n");
+		fprintf(outfile, "\tmov rdi, QWORD PTR stdin[rip]\n");
+		fprintf(outfile, "\tmov eax, 0\n");
+		fprintf(outfile, "\tcall __isoc99_fscanf\n\n");
+	}
+	else if(!strcmp(name, "write")) // special case
+	{
+		tree_t* var_ptr = n->right->right;
+		fprintf(outfile, "\n# call 'write' using fprintf\n");
+		fprintf(outfile, "\tmov edx, %s\n", string_value(var_ptr));
+		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC1\n");
+		fprintf(outfile, "\tmov rdi, QWORD PTR stderr[rip]\n");
 		fprintf(outfile, "\tmov eax, 0\n");
 		fprintf(outfile, "\tcall\tfprintf\n\n");
 	}
-	else
+	else // normal function
 	{
+		fprintf(outfile, "\n# call procedure '%s'\n", name);
 		entry_t* entry_ptr = find_entry(top_table(), name);
 		if(entry_ptr != NULL) // function valid
 		{
-
+			tree_t* list_ptr = n->right;
+			fprintf(outfile, "# copy for procedure: variable -> register\n");
+			for(int i = 0; i < entry_ptr->arg_num; i++)
+			{
+				fprintf(outfile,"\tmov %s, %s\n", arg_regs[i], string_value(list_ptr->right));
+				list_ptr = list_ptr->left;
+			}
+			fprintf(outfile, "\tcall %s\n", name);
 		}
 	}
 
@@ -217,7 +272,7 @@ void gencode(tree_t* n)
 	/* Case 0: n is a left leaf */
 	if(leaf_node(n) && n->ershov_num == 1)
 	{
-		fprintf(outfile, "\tmov %s, %s\n", reg_string(top(rstack)), var_to_assembly(string_value(n)));
+		fprintf(outfile, "\tmov %s, %s\n", reg_string(top(rstack)), string_value(n));
 	}
 
 	/* Case 1: the right child of n is a leaf */
@@ -225,7 +280,7 @@ void gencode(tree_t* n)
 	{
 		gencode(n->left);
 		fprintf(outfile, "\t%s %s, %s\n", ia64(n->attribute.opval), 
-				reg_string(top(rstack)), var_to_assembly(string_value(n->right)));
+				reg_string(top(rstack)), string_value(n->right));
 	}
 
 	/* Case 2: the right subproblem is larger */

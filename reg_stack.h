@@ -1,7 +1,7 @@
 #ifndef STACK_H
 #define STACK_H
 
-#define MAX_REGS 11
+#define MAX_REGS 6
 
 /* STRUCTURES */
 typedef struct stack_s {

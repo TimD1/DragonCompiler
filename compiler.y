@@ -18,7 +18,7 @@ int yydebug = 1;
 
 int yywrap() { return 1; }
 
-void yyerror(const char *str) { fprintf(stderr, "error: %s\n", str); }
+void yyerror(const char *str) { fprintf(stderr, "\nERROR: %s\n", str); }
 
 int main(int argc, char** argv) 
 { 
@@ -244,14 +244,15 @@ subprogram_decls
 	;
 
 subprogram_decl
-	: subprogram_head { function_header($1); } decls { function_footer($1); } subprogram_decls compound_stmt
+	: subprogram_head decls subprogram_decls { function_header($1); } compound_stmt
 		{
-			check_function($1, $6);
+			check_function($1, $5);
 			$$ = op_tree(LISTOP, "_", $1, 
-					op_tree(LISTOP, "_", $3, 
-						op_tree(LISTOP, "_", $5, $6)
+					op_tree(LISTOP, "_", $2, 
+						op_tree(LISTOP, "_", $3, $5)
 					)
 				 );
+			function_footer($1); 
 			print_table(top_table());
 			pop_table();
 		}
@@ -379,13 +380,16 @@ var
 
 procedure_stmt
 	: id
-		{ $$ = $1; }
+		{ 
+			$$ = $1;
+			call_procedure($$);
+		}
 	| id '(' expr_list ')'
 		{ 
 			$$ = op_tree(PARENOP, "()", $1, $3);
 			entry_t* fn_entry = find_entry(top_table(), $1->attribute.sval);
 			check_args(fn_entry, $3);
-			copy_params_code($$);
+			call_procedure($$);
 		}
 	;
 

@@ -681,8 +681,40 @@ void add_io(tree_t* ident_list_ptr)
 {
 	while(ident_list_ptr->type == LISTOP)
 	{
+		int proc_class = PROCEDURE;
+		char* proc_name;
+		int proc_arg_num = 0;
+		int* proc_args;
+		int proc_type = EMPTY;
 		char* io_option = ident_list_ptr->right->attribute.sval;
-		make_var_io(io_option);
+
+		if(!strcmp(io_option, "input"))
+		{
+			proc_name = "read";
+			proc_arg_num = 1;
+			proc_args = (int*)malloc(sizeof(int));
+			*proc_args = INUM;
+			entry_t* entry_ptr = 
+				make_entry(proc_name, proc_class, NULL, 
+					proc_type, proc_arg_num, proc_args, 0, 0);
+			insert_entry(entry_ptr, top_table());
+		}
+		else if(!strcmp(io_option, "output"))
+		{
+			proc_name = "write";
+			proc_arg_num = 1;
+			proc_args = (int*)malloc(sizeof(int));
+			*proc_args = INUM;
+			entry_t* entry_ptr = 
+				make_entry(proc_name, proc_class, NULL, 
+					proc_type, proc_arg_num, proc_args, 0, 0);
+			insert_entry(entry_ptr, top_table());
+		}
+		else
+		{
+			fprintf(stderr, "\nERROR: 'input' and 'output' are only valid i/o options, not %s\n", io_option);
+			exit(0);
+		}
 
 		ident_list_ptr = ident_list_ptr->left;
 	}

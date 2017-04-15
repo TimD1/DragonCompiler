@@ -30,8 +30,7 @@ void swap(stack_t* stack)
 
 char* reg_string(int reg_id)
 {
-	static char* regs[] = {"r15", "r14", "r13", "r12", "r11", 
-						   "r10", "r9", "r8", "rdi", "rsi", "rbx"};
+	static char* regs[] = {"r15d", "r14d", "r13d", "r12d", "r11d", "r10d"};
 	
 	// check register id bounds
 	static char illegal_reg[] = {"rERROR"};

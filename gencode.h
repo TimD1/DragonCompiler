@@ -27,7 +27,7 @@ char* ia64(char* opval);
 char* string_value(tree_t* n);
 
 void assignment_gencode(tree_t* n);
-void copy_params_code(tree_t* n);
+void call_procedure(tree_t* n);
 char* var_to_assembly(char* name);
 void gencode(tree_t* n);
 
