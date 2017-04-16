@@ -5,7 +5,7 @@
 #include "tree.h"
 #include "y.tab.h"
 
-int function_id = 1;
+int assembly_label_num = 1;
 
 %}
 
@@ -87,14 +87,14 @@ program			{
 				}
 function		{
 					fprintf( stderr, " [FUNCTION]" );
-					yylval.ival = function_id;
-					function_id++;
+					yylval.ival = assembly_label_num;
+					assembly_label_num++;
 					return FUNCTION;
 				}
 procedure		{
 					fprintf( stderr, " [PROCEDURE]" );
-					yylval.ival = function_id;
-					function_id++;
+					yylval.ival = assembly_label_num;
+					assembly_label_num++;
 					return PROCEDURE;
 				}
 
@@ -133,7 +133,8 @@ real			{
  /* control-flow keyword tokens */
 if				{
 					fprintf( stderr, " [IF]" );
-					yylval.sval = strdup(yytext);
+					yylval.ival = assembly_label_num;
+					assembly_label_num+=2;
 					return IF;
 				}
 then			{

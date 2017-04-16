@@ -118,7 +118,8 @@ int main(int argc, char** argv)
 
 /* control flow keyword tokens */
 %token <sval> BEG END
-%token <sval> IF THEN ELSE
+%token <ival> IF /* count statements for assembly jumps */
+%token <sval> THEN ELSE
 %token <sval> DO WHILE
 %token <sval> FOR DOWNTO TO
 %token <sval> REPEAT UNTIL
@@ -336,14 +337,15 @@ stmt
 		}
 	| compound_stmt
 		{ $$ = $1; }
-	| IF expr THEN stmt
+	| IF expr { start_if_gencode($2, $1); } THEN stmt
 		{
-			$$ = str_tree(IF, "if then", $2, $4);
+			$$ = str_tree(IF, "if then", $2, $5);
 			enforce_type($2, BOOL);
+			end_if_gencode($$, $1);
 		}
-	| IF expr THEN stmt ELSE stmt
+	| IF expr {;} THEN stmt ELSE stmt
 		{
-			$$ = str_tree(IF, "if then-else", $2, str_tree(IF, "then else", $4, $6));
+			$$ = str_tree(IF, "if then-else", $2, str_tree(IF, "then else", $5, $7));
 			enforce_type($2, BOOL);
 		}
 	| WHILE expr DO stmt

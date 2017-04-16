@@ -331,7 +331,7 @@ int type(tree_t* t)
 			return type(t->left);
 		}
 
-		else //using a boolean expression
+		else //using a boolean expression (AND or OR)
 		{
 			check_types(t->left, t->right);	
 			if(type(t->left) != BOOL)
