@@ -216,7 +216,7 @@ void assignment_gencode(tree_t* n)
 void start_if_gencode(tree_t* n, int label_num)
 {
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# start if\n");
-	bool_gencode(n, label_num);
+	gencode(n);
 	fprintf(outfile, "\tcmp %s, 0\n", reg_string(top(rstack)));
 	fprintf(outfile, "\tje .L%d\n", label_num);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end conditional\n");
@@ -290,16 +290,13 @@ void gencode(tree_t* n)
 {
 	/* Case 0: n is a left leaf */
 	if(leaf_node(n) && n->ershov_num == 1)
-	{
-		fprintf(outfile, "\tmov %s, %s\n", reg_string(top(rstack)), string_value(n));
-	}
+		print_code("mov", reg_string(top(rstack)), string_value(n));
 
 	/* Case 1: the right child of n is a leaf */
 	else if( !empty(n->right) && leaf_node(n->right) && n->right->ershov_num == 0)
 	{
 		gencode(n->left);
-		fprintf(outfile, "\t%s %s, %s\n", ia64(n->attribute.opval), 
-				reg_string(top(rstack)), string_value(n->right));
+		print_code(n->attribute.opval, reg_string(top(rstack)), string_value(n->right));
 	}
 
 	/* Case 2: the right subproblem is larger */
@@ -309,8 +306,7 @@ void gencode(tree_t* n)
 		gencode(n->right);
 		int r = pop(rstack);
 		gencode(n->left);
-		fprintf(outfile, "\t%s %s, %s\n", ia64(n->attribute.opval), 
-				reg_string(top(rstack)), reg_string(r));
+		print_code(n->attribute.opval, reg_string(top(rstack)), reg_string(r));
 		push(r, rstack);
 		swap(rstack);
 	}
@@ -321,8 +317,7 @@ void gencode(tree_t* n)
 		gencode(n->left);
 		int r = pop(rstack);
 		gencode(n->right);
-		fprintf(outfile, "\t%s %s, %s\n", ia64(n->attribute.opval), 
-				reg_string(r), reg_string(top(rstack)));
+		print_code(n->attribute.opval, reg_string(r), reg_string(top(rstack)));
 		push(r, rstack);
 	}
 
@@ -334,65 +329,115 @@ void gencode(tree_t* n)
 }
 
 
-/* Generates assembly code to evaluate the boolean condition of a comparison
-   and place the result in the top register.
-*/
-void simple_if(char* opval, char* top_reg, char* str_var)
+void print_code(char* opval, char* left, char* right)
 {
-	if(!strcmp(opval, "="))
+	// leaf
+	if(!strcmp(opval, "mov"))
+		fprintf(outfile, "\tmov %s, %s\n", left, right);
+
+	// expressions
+	else if(!strcmp(opval, "+"))
+		fprintf(outfile, "\tadd %s, %s\n", left, right);
+
+	else if(!strcmp(opval, "-"))
+		fprintf(outfile, "\tsub %s, %s\n", left, right);
+
+	else if(!strcmp(opval, "*"))
+		fprintf(outfile, "\timul %s, %s\n", left, right);
+
+	else if(!strcmp(opval, "/"))
+		fprintf(outfile, "\tidiv %s, %s\n", left, right);
+
+	// booleans
+	else if(!strcmp(opval, "and"))
+		fprintf(outfile, "\tand %s, %s\n", left, right);
+
+	else if(!strcmp(opval, "or"))
+		fprintf(outfile, "\tor %s, %s\n", left, right);
+
+	/* if(!strcmp(opval, "not")) */
+	/* 	fprintf(outfile, "\tnot %s\n", left); */
+
+	// relations
+	else if(!strcmp(opval, "="))
 	{
-	}
-}
-
-
-/* Given pointer to boolean expression in tree, generate code for expression.
-   This code assumes that each "leaf" has a boolean value, such as (a > 3)*/
-void bool_gencode(tree_t* n, int label)
-{
-	/* Case 0: n is a relational operator */
-	if(leaf_node(n->right) && leaf_node(n->left) && n->ershov_num == 1)
-	{
-		simple_if(n->attribute.opval, reg_string(top(rstack)), string_value(n->right));
-		//fprintf(outfile, "\tmov %s, %s\n", reg_string(top(rstack)), string_value(n));
-	}
-
-	/* Case 1: the right child of n is a relational comparison */
-	else if( !empty(n->right) && leaf_node(n->right) && n->right->ershov_num == 0)
-	{
-		bool_gencode(n->left);
-
-		//fprintf(outfile, "\t%s %s, %s\n", ia64(n->attribute.opval), 
-		//		reg_string(top(rstack)), string_value(n->right));
-	}
-
-	/* Case 2: the right subproblem is larger */
-	else if(n->left->ershov_num <= n->right->ershov_num)
-	{
-		swap(rstack);
-		bool_gencode(n->right);
-		int r = pop(rstack);
-		bool_gencode(n->left);
-		fprintf(outfile, "\t%s %s, %s\n", ia64(n->attribute.opval), 
-				reg_string(top(rstack)), reg_string(r));
-		push(r, rstack);
-		swap(rstack);
+		fprintf(outfile, "\tcmp %s, %s\n", left, right);
+		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
+		fprintf(outfile, "\tsete %s\n", get_end(left)); // set to nonzero if true
 	}
 
-	/* Case 3: the left subproblem is larger */
-	else if(n->left->ershov_num >= n->right->ershov_num)
+	else if(!strcmp(opval, "<>"))
 	{
-		bool_gencode(n->left);
-		int r = pop(rstack);
-		bool_gencode(n->right);
-		fprintf(outfile, "\t%s %s, %s\n", ia64(n->attribute.opval), 
-				reg_string(r), reg_string(top(rstack)));
-		push(r, rstack);
+		fprintf(outfile, "\tcmp %s, %s\n", left, right);
+		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
+		fprintf(outfile, "\tsetne %s\n", get_end(left)); // set to nonzero if true
 	}
 
-	/* Case 4: insufficient registers */ //shouldn't need this for now
+	else if(!strcmp(opval, "<"))
+	{
+		fprintf(outfile, "\tcmp %s, %s\n", left, right);
+		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
+		fprintf(outfile, "\tsetl %s\n", get_end(left)); // set to nonzero if true
+	}
+
+	else if(!strcmp(opval, "<="))
+	{
+		fprintf(outfile, "\tcmp %s, %s\n", left, right);
+		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
+		fprintf(outfile, "\tsetle %s\n", get_end(left)); // set to nonzero if true
+	}
+
+	else if(!strcmp(opval, ">"))
+	{
+		fprintf(outfile, "\tcmp %s, %s\n", left, right);
+		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
+		fprintf(outfile, "\tsetg %s\n", get_end(left)); // set to nonzero if true
+	}
+
+	else if(!strcmp(opval, ">="))
+	{
+		fprintf(outfile, "\tcmp %s, %s\n", left, right);
+		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
+		fprintf(outfile, "\tsetge %s\n", get_end(left)); // set to nonzero if true
+	}
 	else
-	{
-		fprintf(stderr, "ERROR: Case 4 of bool_gencode reached.");
-	}
+		fprintf(outfile, "\tERROR: %s, %s\n", left, right);
+
 }
 
+
+/* Assumes we will only need to do this for registers on the stack. */
+char* get_end(char* reg)
+{
+	char new_reg[5];
+	strcpy(new_reg, reg);
+	new_reg[3] = 'b';
+	return strdup(new_reg);
+}
+	
+
+/* void bool_gencode(tree_t* n, int label_num) */
+/* { */
+/* 	// not an 'and' or 'or' */
+/* 	if(n->type != ADDOP && n->type != MULOP) */
+/* 		return; */
+	
+/* 	// recursively call gencode */
+/* 	if(n->left->type == ADDOP || n->left->type == MULOP) */
+/* 	{ */
+/* 		bool_gencode(n->left, label_num); */
+/* 		bool_gencode(n->right, label_num); */
+/* 	} */
+/* 	else if(n->left->type == */ 
+
+	
+/* 	if(n->type == ADDOP && !strcmp(n->attribute.opval, "or")) */
+/* 	{ */
+		
+/* 	} */
+/* 	else if(n->type == MULOP && !strcmp(n->attribute.opval, "and")) */
+/* 	else */
+/* 	{ */
+/* 		fprintf(stderr, "ERROR: Must use 'and' or 'or'."); */
+/* 	} */
+/* } */
