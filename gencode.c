@@ -91,7 +91,7 @@ void function_header(tree_t* n)
 	fprintf(outfile, "\t.type\t%s, @function\n", fn_name);
 	fprintf(outfile, "%s:\n", fn_name);
 	fprintf(outfile, "\tpush\trbp\n");
-	fprintf(outfile, "\tmov rbp, rsp\n\n");
+	fprintf(outfile, "\tmov\t\trbp, rsp\n\n");
 
 	/* // copy values from registers to local parameters */
 	/* if (GENCODE_DEBUG) fprintf(outfile, "\n# copy for function: register -> parameter\n"); */
@@ -123,7 +123,7 @@ void function_footer(tree_t* n)
 	char* fn_name = name_ptr->attribute.sval;
 
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# function footer\n");
-	fprintf(outfile, "\tpop rbp\n");
+	fprintf(outfile, "\tpop\t\trbp\n");
 	fprintf(outfile, "\tret\n");
 	fprintf(outfile, "\t.size\t%s, .-%s\n\n\n", fn_name, fn_name);
 }
@@ -137,8 +137,8 @@ void main_header()
 	fprintf(outfile, "\t.type\tmain, @function\n");
 	fprintf(outfile, "main:\n");
 	fprintf(outfile, "\tpush\trbp\n");
-	fprintf(outfile, "\tmov rbp, rsp\n");
-	fprintf(outfile, "\tsub rsp, 256\n"); // leave constant for now
+	fprintf(outfile, "\tmov\t\trbp, rsp\n");
+	fprintf(outfile, "\tsub\t\trsp, 256\n"); // leave constant for now
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# main code\n");
 }
 
@@ -147,7 +147,7 @@ void main_header()
 void main_footer()
 {
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# main footer\n");
-	fprintf(outfile, "\tmov eax, 0\n");
+	fprintf(outfile, "\tmov\t\teax, 0\n");
 	fprintf(outfile, "\tleave\n");
 	fprintf(outfile, "\tret\n");
 	fprintf(outfile, "\n\t.size\tmain, .-main\n\n\n");
@@ -159,9 +159,9 @@ void main_footer()
 char* ia64(char* opval)
 {
 	if(!strcmp(opval, "+"))
-		return strdup("add");
+		return strdup("add ");
 	if(!strcmp(opval, "-"))
-		return strdup("sub");
+		return strdup("sub ");
 	if(!strcmp(opval, "*"))
 		return strdup("imul");
 	if(!strcmp(opval, "/"))
@@ -211,7 +211,7 @@ void assignment_gencode(tree_t* n)
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# evaluate expression\n");
 	gencode(n->right);
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# assignment\n");
-	fprintf(outfile, "\tmov %s, %s\n", string_value(n->left), reg_string(top(rstack)));
+	fprintf(outfile, "\tmov\t\t%s, %s\n", string_value(n->left), reg_string(top(rstack)));
 }
 
 
@@ -219,7 +219,7 @@ void start_if_gencode(tree_t* n, int label_num)
 {
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# start if\n");
 	gencode(n);
-	fprintf(outfile, "\tcmp %s, 0\n", reg_string(top(rstack)));
+	fprintf(outfile, "\tcmp\t\t%s, 0\n", reg_string(top(rstack)));
 	fprintf(outfile, "\tje .L%d\n", label_num);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end conditional\n");
 }
@@ -251,24 +251,24 @@ void call_procedure(tree_t* n)
 	{
 		char* var_name = n->right->right->attribute.sval;
 		if (GENCODE_DEBUG) fprintf(outfile, "\n# call 'read' using fscanf\n");
-		fprintf(outfile, "\tmov rax, QWORD PTR fs:40\n");
-		fprintf(outfile, "\txor eax, eax\n");
-		fprintf(outfile, "\tmov rax, QWORD PTR stdin[rip]\n");
-		fprintf(outfile, "\tlea rdx, [rbp-%d]\n", get_entry_id(var_name)*8);
-		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC0\n");
-		fprintf(outfile, "\tmov rdi, rax\n");
-		fprintf(outfile, "\tmov eax, 0\n");
+		fprintf(outfile, "\tmov\t\trax, QWORD PTR fs:40\n");
+		fprintf(outfile, "\txor\t\teax, eax\n");
+		fprintf(outfile, "\tmov\t\trax, QWORD PTR stdin[rip]\n");
+		fprintf(outfile, "\tlea\t\trdx, [rbp-%d]\n", get_entry_id(var_name)*8);
+		fprintf(outfile, "\tmov\t\tesi, OFFSET FLAT:.LC0\n");
+		fprintf(outfile, "\tmov\t\trdi, rax\n");
+		fprintf(outfile, "\tmov\t\teax, 0\n");
 		fprintf(outfile, "\tcall\t__isoc99_fscanf\n\n");
 	}
 	else if(!strcmp(name, "write")) // special case
 	{
 		tree_t* var_ptr = n->right->right;
 		if (GENCODE_DEBUG) fprintf(outfile, "\n# call 'write' using fprintf\n");
-		fprintf(outfile, "\tmov rdx, %s\n", string_value(var_ptr));
-		fprintf(outfile, "\tmov rax, QWORD PTR stderr[rip]\n");
-		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC1\n");
-		fprintf(outfile, "\tmov rdi, rax\n");
-		fprintf(outfile, "\tmov eax, 0\n");
+		fprintf(outfile, "\tmov\t\trdx, %s\n", string_value(var_ptr));
+		fprintf(outfile, "\tmov\t\trax, QWORD PTR stderr[rip]\n");
+		fprintf(outfile, "\tmov\t\tesi, OFFSET FLAT:.LC1\n");
+		fprintf(outfile, "\tmov\t\trdi, rax\n");
+		fprintf(outfile, "\tmov\t\teax, 0\n");
 		fprintf(outfile, "\tcall\tfprintf\n\n");
 	}
 	/* else // normal function */
@@ -339,27 +339,27 @@ void print_code(char* opval, char* left, char* right)
 {
 	// leaf
 	if(!strcmp(opval, "mov"))
-		fprintf(outfile, "\tmov %s, %s\n", left, right);
+		fprintf(outfile, "\tmov\t\t%s, %s\n", left, right);
 
 	// expressions
 	else if(!strcmp(opval, "+"))
-		fprintf(outfile, "\tadd %s, %s\n", left, right);
+		fprintf(outfile, "\tadd\t\t%s, %s\n", left, right);
 
 	else if(!strcmp(opval, "-"))
-		fprintf(outfile, "\tsub %s, %s\n", left, right);
+		fprintf(outfile, "\tsub\t\t%s, %s\n", left, right);
 
 	else if(!strcmp(opval, "*"))
-		fprintf(outfile, "\timul %s, %s\n", left, right);
+		fprintf(outfile, "\timul\t%s, %s\n", left, right);
 
 	else if(!strcmp(opval, "/"))
-		fprintf(outfile, "\tidiv %s, %s\n", left, right);
+		fprintf(outfile, "\tidiv\t%s, %s\n", left, right);
 
 	// booleans
 	else if(!strcmp(opval, "and"))
-		fprintf(outfile, "\tand %s, %s\n", left, right);
+		fprintf(outfile, "\tand\t\t%s, %s\n", left, right);
 
 	else if(!strcmp(opval, "or"))
-		fprintf(outfile, "\tor %s, %s\n", left, right);
+		fprintf(outfile, "\tor\t\t%s, %s\n", left, right);
 
 	/* if(!strcmp(opval, "not")) */
 	/* 	fprintf(outfile, "\tnot %s\n", left); */
@@ -376,14 +376,9 @@ void print_code(char* opval, char* left, char* right)
 		else if(!strcmp(opval, ">=")) op = "setge";
 		else op = "ERROR";
 			
-		int cur_reg = pop(rstack);
-		char* temp_reg = reg_string(top(rstack));
-		push(cur_reg, rstack);
-
-		fprintf(outfile, "\txor %s, %s\n", temp_reg, temp_reg);
-		fprintf(outfile, "\tcmp %s, %s\n", left, right);
-		fprintf(outfile, "\t%s %s\n", op, get_end(temp_reg));
-		fprintf(outfile, "\tmov %s, %s\n", left, temp_reg);
+		fprintf(outfile, "\tcmp\t\t%s, %s\n", left, right);
+		fprintf(outfile, "\t%s\t%s\n", op, get_end(left));
+		fprintf(outfile, "\tmovzx\t%s, %s\n", left, get_end(left));
 	}
 
 }
