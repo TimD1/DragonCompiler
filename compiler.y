@@ -57,6 +57,7 @@ int main(int argc, char** argv)
 	for(int i = 0; i < MAX_REGS; i++)
 		rstack->reg[i] = i;
 	rstack->top_idx = MAX_REGS-1;
+	print(rstack);
 
 	// parse input file
 	fprintf(stderr, "TOKENIZATION\n____________\n\n");

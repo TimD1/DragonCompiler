@@ -21,19 +21,19 @@ FILE* outfile;
 	rbp = base pointer
 	rip = instruction pointer
 
-	edi	= 1st argument
-	esi	= 2nd argument
-	edx	= 3rd argument
-	ecx	= 4th argument
-	r8d	= 5th argument
-	r9d	= 6th argument
-
-	r10d = temp var (top of stack)
-	r11d = temp var
-	r12d = temp var
-	r13d = temp var
-	r14d = temp var
-	r15d = temp var (bottom of stack)
+	rdi = reserved for io use
+	rsi = reserved for io use
+	rdx = reserved for io use
+	
+	rcx = temp var (top of stack)
+	r8  = temp var
+	r9  = temp var
+	r10 = temp var	
+	r11 = temp var
+	r12 = temp var
+	r13 = temp var
+	r14 = temp var
+	r15 = temp var (bottom of stack)
 */
 
 
@@ -54,9 +54,9 @@ void add_io_code()
 		if (GENCODE_DEBUG) fprintf(outfile, "\n# create io format strings\n");
 		fprintf(outfile, "\t.section\t.rodata\n");
 		fprintf(outfile, ".LC0: # reading\n");
-		fprintf(outfile, "\t.string \"%%d\"\n");
+		fprintf(outfile, "\t.string \"%%lld\"\n");
 		fprintf(outfile, ".LC1: # writing\n");
-		fprintf(outfile, "\t.string \"%%d\\n\"\n");
+		fprintf(outfile, "\t.string \"%%lld\\n\"\n");
 	}
 	fprintf(outfile, "\t.text\n\n\n");
 }
@@ -93,17 +93,18 @@ void function_header(tree_t* n)
 	fprintf(outfile, "\tpush\trbp\n");
 	fprintf(outfile, "\tmov rbp, rsp\n\n");
 
-	// copy values from registers to local parameters
-	if (GENCODE_DEBUG) fprintf(outfile, "\n# copy for function: register -> parameter\n");
-	static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
-	entry_t* entry_ptr = find_entry(top_table(), fn_name);
-	if(entry_ptr != NULL)
-	{
-		for(int i = 0; i < entry_ptr->arg_num; i++)
-		{
-			fprintf(outfile, "\tmov DWORD PTR [rbp-%d], %s\n", 4*(i+1), arg_regs[i]);
-		}
-	}
+	/* // copy values from registers to local parameters */
+	/* if (GENCODE_DEBUG) fprintf(outfile, "\n# copy for function: register -> parameter\n"); */
+	/* static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"}; */
+	/* entry_t* entry_ptr = find_entry(top_table(), fn_name); */
+	/* if(entry_ptr != NULL) */
+	/* { */
+	/* 	for(int i = 0; i < entry_ptr->arg_num; i++) */
+	/* 	{ */
+	/* 		fprintf(outfile, "\tmov QWORD PTR [rbp-%d], %s\n", 8*(i+1), arg_regs[i]); */
+	/* 	} */
+	/* } */
+
 }
 
 
@@ -137,6 +138,7 @@ void main_header()
 	fprintf(outfile, "main:\n");
 	fprintf(outfile, "\tpush\trbp\n");
 	fprintf(outfile, "\tmov rbp, rsp\n");
+	fprintf(outfile, "\tsub rsp, 256\n"); // leave constant for now
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# main code\n");
 }
 
@@ -146,7 +148,7 @@ void main_footer()
 {
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# main footer\n");
 	fprintf(outfile, "\tmov eax, 0\n");
-	fprintf(outfile, "\tpop rbp\n");
+	fprintf(outfile, "\tleave\n");
 	fprintf(outfile, "\tret\n");
 	fprintf(outfile, "\n\t.size\tmain, .-main\n\n\n");
 }
@@ -194,9 +196,9 @@ char* string_value(tree_t* n)
 /* Given variable name, return assembly pointer to location */
 char* var_to_assembly(char* name)
 {
-	char str[50] = "DWORD PTR [rbp-";
+	char str[50] = "QWORD PTR [rbp-";
 	char num[20];
-	sprintf(num, "%d", get_entry_id(name)*4);
+	sprintf(num, "%d", get_entry_id(name)*8);
 	strcat(str, num);
 	strcat(str, "]");
 	return strdup(str);
@@ -243,44 +245,48 @@ void call_procedure(tree_t* n)
 		return;
 	}
 
-	static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
+	/* static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"}; */
 	char* name = strdup(n->left->attribute.sval);
 	if(!strcmp(name, "read")) // special case
 	{
 		char* var_name = n->right->right->attribute.sval;
 		if (GENCODE_DEBUG) fprintf(outfile, "\n# call 'read' using fscanf\n");
-		fprintf(outfile, "\tlea rdx, [rbp-%d]\n", get_entry_id(var_name)*4);
+		fprintf(outfile, "\tmov rax, QWORD PTR fs:40\n");
+		fprintf(outfile, "\txor eax, eax\n");
+		fprintf(outfile, "\tmov rax, QWORD PTR stdin[rip]\n");
+		fprintf(outfile, "\tlea rdx, [rbp-%d]\n", get_entry_id(var_name)*8);
 		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC0\n");
-		fprintf(outfile, "\tmov rdi, QWORD PTR stdin[rip]\n");
+		fprintf(outfile, "\tmov rdi, rax\n");
 		fprintf(outfile, "\tmov eax, 0\n");
-		fprintf(outfile, "\tcall __isoc99_fscanf\n\n");
+		fprintf(outfile, "\tcall\t__isoc99_fscanf\n\n");
 	}
 	else if(!strcmp(name, "write")) // special case
 	{
 		tree_t* var_ptr = n->right->right;
 		if (GENCODE_DEBUG) fprintf(outfile, "\n# call 'write' using fprintf\n");
-		fprintf(outfile, "\tmov edx, %s\n", string_value(var_ptr));
+		fprintf(outfile, "\tmov rdx, %s\n", string_value(var_ptr));
+		fprintf(outfile, "\tmov rax, QWORD PTR stderr[rip]\n");
 		fprintf(outfile, "\tmov esi, OFFSET FLAT:.LC1\n");
-		fprintf(outfile, "\tmov rdi, QWORD PTR stderr[rip]\n");
+		fprintf(outfile, "\tmov rdi, rax\n");
 		fprintf(outfile, "\tmov eax, 0\n");
 		fprintf(outfile, "\tcall\tfprintf\n\n");
 	}
-	else // normal function
-	{
-		if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name);
-		entry_t* entry_ptr = find_entry(top_table(), name);
-		if(entry_ptr != NULL) // function valid
-		{
-			tree_t* list_ptr = n->right;
-			fprintf(outfile, "# copy for procedure: variable -> register\n");
-			for(int i = 0; i < entry_ptr->arg_num; i++)
-			{
-				fprintf(outfile,"\tmov %s, %s\n", arg_regs[i], string_value(list_ptr->right));
-				list_ptr = list_ptr->left;
-			}
-			fprintf(outfile, "\tcall %s\n", name);
-		}
-	}
+	/* else // normal function */
+	/* { */
+	/* 	if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name); */
+	/* 	entry_t* entry_ptr = find_entry(top_table(), name); */
+	/* 	if(entry_ptr != NULL) // function valid */
+	/* 	{ */
+	/* 		tree_t* list_ptr = n->right; */
+	/* 		fprintf(outfile, "# copy for procedure: variable -> register\n"); */
+	/* 		for(int i = 0; i < entry_ptr->arg_num; i++) */
+	/* 		{ */
+	/* 			fprintf(outfile,"\tmov %s, %s\n", arg_regs[i], string_value(list_ptr->right)); */
+	/* 			list_ptr = list_ptr->left; */
+	/* 		} */
+	/* 		fprintf(outfile, "\tcall %s\n", name); */
+	/* 	} */
+	/* } */
 
 }
 
@@ -359,49 +365,26 @@ void print_code(char* opval, char* left, char* right)
 	/* 	fprintf(outfile, "\tnot %s\n", left); */
 
 	// relations
-	else if(!strcmp(opval, "="))
+	else 
 	{
-		fprintf(outfile, "\tcmp %s, %s\n", left, right);
-		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
-		fprintf(outfile, "\tsete %s\n", get_end(left)); // set to nonzero if true
-	}
+		char* op;
+		if(!strcmp(opval, "=")) 	  op = "sete";
+		else if(!strcmp(opval, "<>")) op = "setne";
+		else if(!strcmp(opval, "<"))  op = "setl";
+		else if(!strcmp(opval, "<=")) op = "setle";
+		else if(!strcmp(opval, ">"))  op = "setg";
+		else if(!strcmp(opval, ">=")) op = "setge";
+		else op = "ERROR";
+			
+		int cur_reg = pop(rstack);
+		char* temp_reg = reg_string(top(rstack));
+		push(cur_reg, rstack);
 
-	else if(!strcmp(opval, "<>"))
-	{
+		fprintf(outfile, "\txor %s, %s\n", temp_reg, temp_reg);
 		fprintf(outfile, "\tcmp %s, %s\n", left, right);
-		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
-		fprintf(outfile, "\tsetne %s\n", get_end(left)); // set to nonzero if true
+		fprintf(outfile, "\t%s %s\n", op, get_end(temp_reg));
+		fprintf(outfile, "\tmov %s, %s\n", left, temp_reg);
 	}
-
-	else if(!strcmp(opval, "<"))
-	{
-		fprintf(outfile, "\tcmp %s, %s\n", left, right);
-		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
-		fprintf(outfile, "\tsetl %s\n", get_end(left)); // set to nonzero if true
-	}
-
-	else if(!strcmp(opval, "<="))
-	{
-		fprintf(outfile, "\tcmp %s, %s\n", left, right);
-		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
-		fprintf(outfile, "\tsetle %s\n", get_end(left)); // set to nonzero if true
-	}
-
-	else if(!strcmp(opval, ">"))
-	{
-		fprintf(outfile, "\tcmp %s, %s\n", left, right);
-		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
-		fprintf(outfile, "\tsetg %s\n", get_end(left)); // set to nonzero if true
-	}
-
-	else if(!strcmp(opval, ">="))
-	{
-		fprintf(outfile, "\tcmp %s, %s\n", left, right);
-		fprintf(outfile, "\tmov %s, 0\n", left); // clear left register
-		fprintf(outfile, "\tsetge %s\n", get_end(left)); // set to nonzero if true
-	}
-	else
-		fprintf(outfile, "\tERROR: %s, %s\n", left, right);
 
 }
 
@@ -409,35 +392,24 @@ void print_code(char* opval, char* left, char* right)
 /* Assumes we will only need to do this for registers on the stack. */
 char* get_end(char* reg)
 {
+	// get names of legacy registers
+	if(!strcmp(reg, "rdi")) return strdup("dil");
+	if(!strcmp(reg, "rsi")) return strdup("sil");
+	if(!strcmp(reg, "rdx")) return strdup("dl");
+	if(!strcmp(reg, "rcx")) return strdup("cl");
+
+	// add 'b' onto registers r8+
 	char new_reg[5];
 	strcpy(new_reg, reg);
-	new_reg[3] = 'b';
+	if(new_reg[2] == '\0') // r8 or r9
+	{
+		new_reg[2] = 'b';
+		new_reg[3] = '\0';
+	}
+	else // r10+
+	{
+		new_reg[3] = 'b';
+		new_reg[4] = '\0';
+	}
 	return strdup(new_reg);
 }
-	
-
-/* void bool_gencode(tree_t* n, int label_num) */
-/* { */
-/* 	// not an 'and' or 'or' */
-/* 	if(n->type != ADDOP && n->type != MULOP) */
-/* 		return; */
-	
-/* 	// recursively call gencode */
-/* 	if(n->left->type == ADDOP || n->left->type == MULOP) */
-/* 	{ */
-/* 		bool_gencode(n->left, label_num); */
-/* 		bool_gencode(n->right, label_num); */
-/* 	} */
-/* 	else if(n->left->type == */ 
-
-	
-/* 	if(n->type == ADDOP && !strcmp(n->attribute.opval, "or")) */
-/* 	{ */
-		
-/* 	} */
-/* 	else if(n->type == MULOP && !strcmp(n->attribute.opval, "and")) */
-/* 	else */
-/* 	{ */
-/* 		fprintf(stderr, "ERROR: Must use 'and' or 'or'."); */
-/* 	} */
-/* } */

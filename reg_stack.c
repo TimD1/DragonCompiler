@@ -30,11 +30,11 @@ void swap(stack_t* stack)
 
 char* reg_string(int reg_id)
 {
-	static char* regs[] = {"r15d", "r14d", "r13d", "r12d", "r11d", "r10d"};
+	static char* regs[] = {"r15", "r14", "r13", "r12", "r11", "r10", "r9", "r8", "rcx"};
 	
 	// check register id bounds
 	static char illegal_reg[] = {"rERROR"};
-	if(reg_id < 0 || reg_id > 10)
+	if(reg_id < 0 || reg_id >= MAX_REGS)
 		return illegal_reg;
 
 	return regs[reg_id];
