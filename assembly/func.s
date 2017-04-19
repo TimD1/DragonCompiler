@@ -24,8 +24,8 @@ complicated_operation:
 	mov	DWORD PTR [rbp-8], esi
 	mov	DWORD PTR [rbp-12], edx
 	mov	DWORD PTR [rbp-16], ecx
-	mov	DWORD PTR [rbp-20], r8d
-	mov	DWORD PTR [rbp-24], r9d
+	mov	DWORD PTR [rbp-20], r8
+	mov	DWORD PTR [rbp-24], r9
 	mov	edx, DWORD PTR [rbp-8]
 	mov	eax, DWORD PTR [rbp-12]
 	lea	ecx, [rdx+rax]
@@ -63,14 +63,14 @@ main:
 	mov	eax, DWORD PTR [rbp-4]
 	mov	edi, eax
 	call	increment
-	mov	r8d, DWORD PTR [rbp-24]
+	mov	r8, DWORD PTR [rbp-24]
 	mov	edi, DWORD PTR [rbp-20]
 	mov	ecx, DWORD PTR [rbp-16]
 	mov	edx, DWORD PTR [rbp-12]
 	mov	esi, DWORD PTR [rbp-8]
 	mov	eax, DWORD PTR [rbp-4]
-	mov	r9d, r8d
-	mov	r8d, edi
+	mov	r9, r8
+	mov	r8, edi
 	mov	edi, eax
 	call	complicated_operation
 	mov	eax, 0

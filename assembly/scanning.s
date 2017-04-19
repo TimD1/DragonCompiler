@@ -2,9 +2,9 @@
 	.intel_syntax noprefix
 	.section	.rodata
 .LC0:
-	.string	"%d"
+	.string	"%lld"
 .LC1:
-	.string	"%d\n"
+	.string	"%lld\n"
 	.text
 	.globl	main
 	.type	main, @function
@@ -12,23 +12,28 @@ main:
 	push	rbp
 	mov	rbp, rsp
 	sub	rsp, 16
-	
+
 	mov	rax, QWORD PTR fs:40
 	mov	QWORD PTR [rbp-8], rax
-	
-	lea	rdx, [rbp-12]
+	xor	eax, eax
+	mov	rax, QWORD PTR stdin[rip]
+	lea	rdx, [rbp-16]
 	mov	esi, OFFSET FLAT:.LC0
-	mov	rdi, QWORD PTR stdin[rip]
+	mov	rdi, rax
 	mov	eax, 0
 	call	__isoc99_fscanf
-	
-	mov	edx, DWORD PTR [rbp-12]
+
+
+
+
+	mov	rdx, QWORD PTR [rbp-16]
 	mov	rax, QWORD PTR stderr[rip]
 	mov	esi, OFFSET FLAT:.LC1
 	mov	rdi, rax
 	mov	eax, 0
 	call	fprintf
 
+	//check that no overwriting occurred
 	mov	eax, 0
 	mov	rcx, QWORD PTR [rbp-8]
 	xor	rcx, QWORD PTR fs:40

@@ -2,11 +2,9 @@
 	.intel_syntax noprefix
 	.section	.rodata
 .LC0:
-	.string	"1\n"
+	.string	"%lld"
 .LC1:
-	.string	"2\n"
-.LC2:
-	.string	"3\n"
+	.string	"%lld\n"
 	.text
 	.globl	main
 	.type	main, @function
@@ -14,67 +12,35 @@ main:
 	push	rbp
 	mov	rbp, rsp
 	sub	rsp, 32
-
-	mov	DWORD PTR [rbp-20], 3
-	mov	eax, DWORD PTR [rbp-20]
-	mov	DWORD PTR [rbp-16], eax
-	mov	eax, DWORD PTR [rbp-16]
-	mov	DWORD PTR [rbp-12], eax
-	mov	eax, DWORD PTR [rbp-12]
-	mov	DWORD PTR [rbp-8], eax
-	mov	eax, DWORD PTR [rbp-8]
-	mov	DWORD PTR [rbp-4], eax
-
-	cmp	DWORD PTR [rbp-4], 9
-	jg	.L2
-	mov	rax, QWORD PTR stderr[rip]
-	mov	rcx, rax
-	mov	edx, 2
-	mov	esi, 1
-	mov	edi, OFFSET FLAT:.LC0
-	call	fwrite
-
-.L2:
-	cmp	DWORD PTR [rbp-4], 5
-	jle	.L3
-	cmp	DWORD PTR [rbp-12], 9
-	jg	.L3
-	mov	rax, QWORD PTR stderr[rip]
-	mov	rcx, rax
-	mov	edx, 2
-	mov	esi, 1
-	mov	edi, OFFSET FLAT:.LC1
-	call	fwrite
-
-.L3:
-	cmp	DWORD PTR [rbp-4], 0
-	jg	.L4
-	cmp	DWORD PTR [rbp-12], 10
-	jle	.L5
-.L4:
-	mov	rax, QWORD PTR stderr[rip]
-	mov	rcx, rax
-	mov	edx, 2
-	mov	esi, 1
-	mov	edi, OFFSET FLAT:.LC2
-	call	fwrite
-
-.L5:
-	cmp	DWORD PTR [rbp-4], 0
-	jg	.L6
-	cmp	DWORD PTR [rbp-12], 10
-	jle	.L7
-	cmp	DWORD PTR [rbp-8], 2
-	jg	.L7
-.L6:
-	mov	rax, QWORD PTR stderr[rip]
-	mov	rcx, rax
-	mov	edx, 2
-	mov	esi, 1
-	mov	edi, OFFSET FLAT:.LC2
-	call	fwrite
-.L7:
+	
+	mov	rax, QWORD PTR fs:40
+	mov	QWORD PTR [rbp-8], rax
+	xor	eax, eax
+	mov	rax, QWORD PTR stdin[rip]
+	lea	rdx, [rbp-24]
+	mov	esi, OFFSET FLAT:.LC0
+	mov	rdi, rax
 	mov	eax, 0
+	call	__isoc99_fscanf
+
+	mov	rax, QWORD PTR [rbp-24]
+	cmp	rax, 4
+	setle	al
+	movzx	eax, al
+	mov	QWORD PTR [rbp-16], rax
+	cmp	QWORD PTR [rbp-16], 0
+	je	.L2
+
+	mov	rdx, QWORD PTR [rbp-24]
+	mov	rax, QWORD PTR stderr[rip]
+	mov	esi, OFFSET FLAT:.LC1
+	mov	rdi, rax
+	mov	eax, 0
+	call	fprintf
+.L2:
+	mov	eax, 0
+	call	__stack_chk_fail
+.L4:
 	leave
 	ret
 	.size	main, .-main

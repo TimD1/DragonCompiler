@@ -2,8 +2,8 @@
 
 int main()
 {
-	int a;
-	fscanf(stdin,"%d", &a);
+	long long int a;
+	fscanf(stdin,"%lld", &a);
 
-	fprintf(stderr, "%d\n", a);
+	fprintf(stderr, "%lld\n", a);
 }
