@@ -7,6 +7,7 @@
 #include "tree.h"
 #include "hash.h"
 #include "reg_stack.h"
+#include "externs.h"
 #include "y.tab.h"
 
 FILE* outfile;
@@ -79,7 +80,7 @@ void function_header(tree_t* n)
 		name_ptr = name_ptr->left;
 	if(name_ptr->type != IDENT)
 	{
-		fprintf(stderr, "\nERROR: function name expected.\n");
+		fprintf(stderr, "\nERROR, LINE %d: function name expected.\n", yylineno);
 		exit(1);
 	}
 
@@ -116,7 +117,7 @@ void function_footer(tree_t* n)
 		name_ptr = name_ptr->left;
 	if(name_ptr->type != IDENT)
 	{
-		fprintf(stderr, "\nERROR: function name expected.\n");
+		fprintf(stderr, "\nERROR, LINE %d: function name expected.\n", yylineno);
 		exit(1);
 	}
 

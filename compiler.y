@@ -9,10 +9,8 @@
 #include "reg_stack.h"
 #include "gencode.h"
 #include "y.tab.h"
+#include "externs.h"
 
-extern int yylex();
-extern int yyparse();
-extern FILE* yyin;
 
 int yydebug = 1;
 
@@ -57,7 +55,6 @@ int main(int argc, char** argv)
 	for(int i = 0; i < MAX_REGS; i++)
 		rstack->reg[i] = i;
 	rstack->top_idx = MAX_REGS-1;
-	print(rstack);
 
 	// parse input file
 	fprintf(stderr, "TOKENIZATION\n____________\n\n");

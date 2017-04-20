@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "tree.h"
+#include "externs.h"
 #include "y.tab.h"
 
 tree_t *int_tree(int type, int ival, tree_t *left, tree_t *right)
@@ -292,7 +293,7 @@ int type(tree_t* t)
 		// check that correct type is used
 		if(type(t->left) != BOOL)
 		{
-			fprintf(stderr, "\nERROR: 'NOT' must take a boolean (integer) argument.\n");
+			fprintf(stderr, "\nERROR, LINE %d: 'NOT' must take a boolean (integer) argument.\n", yylineno);
 			exit(0);
 		}
 		
@@ -307,7 +308,7 @@ int type(tree_t* t)
 		// check that variable exists
 		if(var_ptr == NULL)
 		{
-			fprintf(stderr, "\nERROR: variable '%s' must be declared before it may be used.\n", t->attribute.sval);
+			fprintf(stderr, "\nERROR, LINE %d: variable '%s' must be declared before it may be used.\n", yylineno, t->attribute.sval);
 			exit(0);
 		}
 
@@ -325,7 +326,7 @@ int type(tree_t* t)
 			check_types(t->left, t->right);
 			if(type(t->left) == BOOL)
 			{
-				fprintf(stderr, "\nERROR: cannot use a boolean in an arithmetic expression.\n");
+				fprintf(stderr, "\nERROR, LINE %d: cannot use a boolean in an arithmetic expression.\n", yylineno);
 				exit(0);
 			}
 			return type(t->left);
@@ -336,7 +337,7 @@ int type(tree_t* t)
 			check_types(t->left, t->right);	
 			if(type(t->left) != BOOL)
 			{
-				fprintf(stderr, "\nERROR: cannot use a number in a boolean expression.\n");
+				fprintf(stderr, "\nERROR, LINE %d: cannot use a number in a boolean expression.\n", yylineno);
 				exit(0);
 			}
 			return BOOL;
@@ -357,14 +358,14 @@ int type(tree_t* t)
 		// check that function exists
 		if(fn_ptr == NULL)
 		{
-			fprintf(stderr, "\nERROR: function/procedure '%s' must be declared before it may be used.\n", t->left->attribute.sval);
+			fprintf(stderr, "\nERROR, LINE %d: function/procedure '%s' must be declared before it may be used.\n", yylineno, t->left->attribute.sval);
 			exit(0);
 		}
 
 		// must be a function, since procedures don't return values
 		if(fn_ptr->entry_class == PROCEDURE)
 		{
-			fprintf(stderr, "\nERROR: procedure '%s' does not return a value.\n", 
+			fprintf(stderr, "\nERROR, LINE %d: procedure '%s' does not return a value.\n", yylineno, 
 				t->left->attribute.sval);
 			exit(0);
 		}
@@ -372,7 +373,7 @@ int type(tree_t* t)
 		// cover all other cases 
 		if(fn_ptr->entry_class != FUNCTION)
 		{
-			fprintf(stderr, "\nERROR: '%s' is not a function.\n", 
+			fprintf(stderr, "\nERROR, LINE %d: '%s' is not a function.\n", yylineno, 
 				t->left->attribute.sval);
 			exit(0);
 		}
@@ -391,21 +392,21 @@ int type(tree_t* t)
 		// check that variable exists
 		if(arr_ptr == NULL)
 		{
-			fprintf(stderr, "\nERROR: array '%s' must be declared before it may be used.\n", t->left->attribute.sval);
+			fprintf(stderr, "\nERROR, LINE %d: array '%s' must be declared before it may be used.\n", yylineno, t->left->attribute.sval);
 			exit(0);
 		}
 		
 		// check that this variable is an array
 		if(arr_ptr->entry_class != ARRAY)
 		{
-			fprintf(stderr, "\nERROR: '%s' is not an array.\n", t->left->attribute.sval);
+			fprintf(stderr, "\nERROR, LINE %d: '%s' is not an array.\n", yylineno, t->left->attribute.sval);
 			exit(0);
 		}
 
 		// only integer indices are legal
 		if(type(t->right) != INUM)
 		{
-			fprintf(stderr, "\nERROR: array '%s' must use integer indices.\n", 
+			fprintf(stderr, "\nERROR, LINE %d: array '%s' must use integer indices.\n", yylineno, 
 				arr_ptr->entry_name);
 			exit(0);
 		}
@@ -416,7 +417,7 @@ int type(tree_t* t)
 
 
 	default:
-		fprintf(stderr, "\nERROR: unexpected tree node type encountered.\n"); 
+		fprintf(stderr, "\nERROR, LINE %d: unexpected tree node type encountered.\n", yylineno); 
 		exit(0);
 			
 	}
@@ -429,7 +430,7 @@ void check_types(tree_t* left, tree_t* right)
 	// check that types match
 	if(type(left) != type(right))
 	{
-		fprintf(stderr, "\nERROR: type mismatch, '%s' and '%s'\n", 
+		fprintf(stderr, "\nERROR, LINE %d: type mismatch, '%s' and '%s'\n", yylineno, 
 			type_string(type(left)), type_string(type(right)));
 		exit(0);
 	}
@@ -442,7 +443,7 @@ void enforce_type(tree_t* tree_ptr, int type_tok)
 {
 	if(type(tree_ptr) != type_tok)
 	{
-		fprintf(stderr, "\nERROR: a '%s' is used where a '%s' is required\n", 
+		fprintf(stderr, "\nERROR, LINE %d: a '%s' is used where a '%s' is required\n", yylineno, 
 			type_string(type(tree_ptr)), type_string(type_tok));
 		exit(0);
 	}
@@ -455,14 +456,14 @@ void check_args(entry_t* fn, tree_t* fn_call)
 	// function doesn't exist
 	if(fn == NULL)
 	{
-		fprintf(stderr, "\nERROR: function/procedure cannot be called before it is declared.\n");
+		fprintf(stderr, "\nERROR, LINE %d: function/procedure cannot be called before it is declared.\n", yylineno);
 		exit(0);
 	}
 	
 	// check function has correct number of args
 	if(count_args(fn_call) != fn->arg_num)
 	{
-		fprintf(stderr, "\nERROR: function/procedure '%s' called with %d arguments instead of %d.\n", fn->entry_name, count_args(fn_call), fn->arg_num);
+		fprintf(stderr, "\nERROR, LINE %d: function/procedure '%s' called with %d arguments instead of %d.\n", yylineno, fn->entry_name, count_args(fn_call), fn->arg_num);
 		exit(0);
 	}
 
@@ -470,7 +471,7 @@ void check_args(entry_t* fn, tree_t* fn_call)
 	{
 		if(type(fn_call->right) != fn->arg_types[i])
 		{
-			fprintf(stderr, "\nERROR: function/procedure '%s' called with incorrect argument types, '%s' instead of '%s'.\n", fn->entry_name, type_string(type(fn_call->right)),type_string(fn->arg_types[i]));
+			fprintf(stderr, "\nERROR, LINE %d: function/procedure '%s' called with incorrect argument types, '%s' instead of '%s'.\n", yylineno, fn->entry_name, type_string(type(fn_call->right)),type_string(fn->arg_types[i]));
 			exit(0);
 		}
 		fn_call = fn_call->left;

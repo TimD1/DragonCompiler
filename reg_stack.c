@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "reg_stack.h"
+#include "externs.h"
 
 stack_t* rstack;
 
@@ -44,7 +45,7 @@ int pop(stack_t* stack)
 {
 	if(size(stack) <= 0)
 	{
-		fprintf(stderr, "\nERROR: Cannot pop from empty stack.\n");
+		fprintf(stderr, "\nERROR, LINE %d: Cannot pop from empty stack.\n", yylineno);
 		exit(1);
 	}
 
@@ -58,7 +59,7 @@ void push(int new_reg, stack_t* stack)
 {
 	if(size(stack) >= MAX_REGS)
 	{
-		fprintf(stderr, "\nERROR: Cannot push onto full stack.\n");
+		fprintf(stderr, "\nERROR, LINE %d: Cannot push onto full stack.\n", yylineno);
 		exit(1);
 	}
 

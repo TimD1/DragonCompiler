@@ -6,6 +6,7 @@
 #include "gencode.h"
 #include "tree.h"
 #include "y.tab.h"
+#include "externs.h"
 
 table_t* head_table;
 
@@ -148,7 +149,7 @@ void print_table(table_t* table)
 						arg_string(entry->arg_num, entry->arg_types));
 					break;
 				default:
-					fprintf(stderr, "\nERROR: function of unknown type.\n");
+					fprintf(stderr, "\nERROR, LINE %d: function of unknown type.\n", yylineno);
 				}
 				break;
 
@@ -175,7 +176,7 @@ void print_table(table_t* table)
 						entry->arg_num);
 					break;
 				default:
-					fprintf(stderr, "\nERROR: array of unknown type.\n");
+					fprintf(stderr, "\nERROR, LINE %d: array of unknown type.\n", yylineno);
 				}
 				break;
 
@@ -207,12 +208,12 @@ void print_table(table_t* table)
 						entry->arg_num);
 					break;
 				default:
-					fprintf(stderr, "\nERROR: variable of unknown type.\n");
+					fprintf(stderr, "\nERROR, LINE %d: variable of unknown type.\n", yylineno);
 					break;
 				}
 				break;
 			default:
-				fprintf(stderr, "\nERROR: object of unknown class.\n");
+				fprintf(stderr, "\nERROR, LINE %d: object of unknown class.\n", yylineno);
 				break;
 
 			}
@@ -374,7 +375,7 @@ int insert_entry(entry_t* entry_ptr, table_t* table)
 	// entry already exists in table
 	if(get_entry(table, entry_ptr->entry_name) != NULL)
 	{
-		fprintf(stderr, "\nERROR: entry '%s' already exists within current scope.\n", entry_ptr->entry_name);
+		fprintf(stderr, "\nERROR, LINE %d: entry '%s' already exists within current scope.\n", yylineno, entry_ptr->entry_name);
 		exit(0);
 	}
 
@@ -506,15 +507,16 @@ void check_function(tree_t* head_ptr, tree_t* body_ptr)
 		tree_t* return_stmt = find_return_stmt(fn_name, body_ptr);
 		if(return_stmt == NULL)
 		{
-			fprintf(stderr, "\nERROR: return statement missing from function '%s'.\n", 
-				fn_name);
+			fprintf(stderr, 
+				"\nERROR, LINE %d: return statement missing from function '%s'.\n", 
+				yylineno, fn_name);
 			exit(0);
 		}
 
 		// return statement must be of correct type
 		if(type(return_stmt->right) != fn_type)
 		{
-			fprintf(stderr, "\nERROR: '%s's return statement of type '%s' given argument of type '%s'.\n", fn_name, type_string(fn_type), type_string(type(return_stmt->right)));
+			fprintf(stderr, "\nERROR, LINE %d: '%s's return statement of type '%s' given argument of type '%s'.\n", yylineno, fn_name, type_string(fn_type), type_string(type(return_stmt->right)));
 			exit(0);
 		}
 	}
@@ -541,7 +543,7 @@ tree_t* find_return_stmt(char* fn_name, tree_t* t)
 			if(get_entry(top_table(), assigned_name) == NULL && 
 				find_entry(top_table()->prev, assigned_name) != NULL)
 			{
-				fprintf(stderr, "\nERROR: cannot assign value of non-local variable '%s' from within function '%s'.\n", assigned_name, fn_name);
+				fprintf(stderr, "\nERROR LINE %d: cannot assign value of non-local variable '%s' from within function '%s'.\n", yylineno, assigned_name, fn_name);
 				exit(0);
 			}
 		}
@@ -610,13 +612,13 @@ void make_vars(tree_t* var_ptr, tree_t* type_ptr)
 		type_ptr = type_ptr->left;
 		if(type_ptr->type != DOTDOT)
 		{
-			fprintf(stderr, "\nERROR: array index missing DOTDOT.\n");
+			fprintf(stderr, "\nERROR, LINE %d: array index missing DOTDOT.\n", yylineno);
 			exit(0);
 		}
 
 		if(type_ptr->left->type != INUM || type_ptr->right->type != INUM)
 		{
-			fprintf(stderr, "\nERROR: array indices must be integral.\n");
+			fprintf(stderr, "\nERROR, LINE %d: array indices must be integral.\n", yylineno);
 			exit(0);
 		}
 
@@ -645,7 +647,7 @@ void make_vars(tree_t* var_ptr, tree_t* type_ptr)
 				make_var_rnum(var_name);
 				break;
 			default:
-				fprintf(stderr, "\nERROR: invalid type, must be integer or real.\n");
+				fprintf(stderr, "\nERROR, LINE %d: invalid type, must be integer or real.\n", yylineno);
 				exit(0);
 				break;
 			}
@@ -661,13 +663,13 @@ void make_vars(tree_t* var_ptr, tree_t* type_ptr)
 				make_arr_rnum(var_name, start_idx, stop_idx);
 				break;
 			default:
-				fprintf(stderr, "\nERROR: invalid type, must be integer or real.\n");
+				fprintf(stderr, "\nERROR, LINE %d: invalid type, must be integer or real.\n", yylineno);
 				exit(0);
 				break;
 			}
 			break;
 		default:
-				fprintf(stderr, "\nERROR: invalid class declaration, must be variable or array.\n");
+				fprintf(stderr, "\nERROR, LINE %d: invalid class declaration, must be variable or array.\n", yylineno);
 				exit(0);
 		}
 		var_ptr = var_ptr->left;
@@ -712,7 +714,7 @@ void add_io(tree_t* ident_list_ptr)
 		}
 		else
 		{
-			fprintf(stderr, "\nERROR: 'input' and 'output' are only valid i/o options, not %s\n", io_option);
+			fprintf(stderr, "\nERROR, LINE %d: 'input' and 'output' are only valid i/o options, not %s\n", yylineno, io_option);
 			exit(0);
 		}
 
@@ -745,13 +747,13 @@ void add_params(tree_t* param_ptr)
 			type_ptr = type_ptr->left;
 			if(type_ptr->type != DOTDOT)
 			{
-				fprintf(stderr, "\nERROR: parameter array index missing DOTDOT\n.");
+				fprintf(stderr, "\nERROR, LINE %d: parameter array index missing DOTDOT\n.", yylineno);
 				exit(0);
 			}
 
 			if(type_ptr->left->type != INUM || type_ptr->right->type != INUM)
 			{
-				fprintf(stderr, "\nERROR: parameter array indices must be integral.\n");
+				fprintf(stderr, "\nERROR, LINE %d: parameter array indices must be integral.\n", yylineno);
 				exit(0);
 			}
 			start_idx = type_ptr->left->attribute.ival;
@@ -784,7 +786,7 @@ void add_params(tree_t* param_ptr)
 					make_var_rnum(var_name);
 					break;
 				default:
-					fprintf(stderr, "\nERROR: invalid parameter type, must be integer or real.\n");
+					fprintf(stderr, "\nERROR, LINE %d: invalid parameter type, must be integer or real.\n", yylineno);
 					exit(0);
 				}
 				break;
@@ -799,12 +801,12 @@ void add_params(tree_t* param_ptr)
 					make_arr_rnum(var_name, start_idx, stop_idx);
 					break;
 				default:
-					fprintf(stderr, "\nERROR: invalid parameter type, must be integer or real.\n");
+					fprintf(stderr, "\nERROR, LINE %d: invalid parameter type, must be integer or real.\n", yylineno);
 					exit(0);
 				}
 				break;
 			default:
-				fprintf(stderr, "\nERROR: invalid parameter class, must be variable or array.\n");
+				fprintf(stderr, "\nERROR, LINE %d: invalid parameter class, must be variable or array.\n", yylineno);
 				exit(0);
 			}
 			var_ptr = var_ptr->left;
