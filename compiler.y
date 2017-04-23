@@ -347,10 +347,11 @@ stmt
 			enforce_type($2, BOOL);
 			end_if_gencode(($1+1));
 		}
-	| WHILE expr DO stmt
+	| WHILE expr { start_while_do_gencode($2, $1); } DO stmt
 		{
-			$$ = str_tree(WHILE, "while do", $2, $4);
+			$$ = str_tree(WHILE, "while do", $2, $5);
 			enforce_type($2, BOOL);
+			end_while_do_gencode($1);
 		}
 	| REPEAT stmt UNTIL expr
 		{

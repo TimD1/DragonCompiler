@@ -246,10 +246,28 @@ void mid_if_else_gencode(int label_num)
 
 void end_if_gencode(int label_num)
 {
-	if (GENCODE_DEBUG) fprintf(outfile, "\n# end if\n");
 	fprintf(outfile, ".L%d:\n", label_num);
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# end if\n");
 }
 
+
+void start_while_do_gencode(tree_t* n, int label_num)
+{
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# start while\n");
+	fprintf(outfile, ".L%d:\n", label_num);
+	gencode(n); // evaluate conditional
+	fprintf(outfile, "\tcmp\t\t%s, 0\n", reg_string(top(rstack)));
+	fprintf(outfile, "\tje .L%d\n", label_num+1);
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# end while, start do\n");
+}
+
+
+void end_while_do_gencode(int label_num)
+{
+	fprintf(outfile, "\tjmp .L%d\n", label_num);
+	fprintf(outfile, ".L%d:\n", label_num+1);
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# end do\n");
+}
 
 /* Given pointer to procedure call, copy params into correct registers
    before calling it. If it's 'write' or 'read', use overloaded fprintf. */

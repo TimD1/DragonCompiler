@@ -33,6 +33,8 @@ void start_if_gencode(tree_t* n, int l);
 void start_if_else_gencode(tree_t* n, int l);
 void mid_if_else_gencode(int l);
 void end_if_gencode(int l);
+void start_while_do_gencode(tree_t* n, int l);
+void end_while_do_gencode(int l);
 
 void assignment_gencode(tree_t* n);
 void call_procedure(tree_t* n);
