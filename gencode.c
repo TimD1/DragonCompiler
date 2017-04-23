@@ -16,7 +16,7 @@ FILE* outfile;
    	REGISTERS
    	---------
 	
-	eax = return value
+	rax = return value & division
 	rbx = save for later
 	rsp = stack pointer
 	rbp = base pointer
@@ -24,7 +24,7 @@ FILE* outfile;
 
 	rdi = reserved for io use
 	rsi = reserved for io use
-	rdx = reserved for io use
+	rdx = reserved for io use & division
 	
 	rcx = temp var (top of stack)
 	r8  = temp var
@@ -407,7 +407,12 @@ void print_code(char* opval, char* left, char* right)
 		fprintf(outfile, "\timul\t%s, %s\n", left, right);
 
 	else if(!strcmp(opval, "/"))
-		fprintf(outfile, "\tidiv\t%s, %s\n", left, right);
+	{
+		fprintf(outfile, "\tmov\t\trax, %s\n", left);
+		fprintf(outfile, "\tcqo\n");
+		fprintf(outfile, "\tidiv\t%s\n", right);
+		fprintf(outfile, "\tmov\t\t%s, rax\n", left);
+	}
 
 	// booleans
 	else if(!strcmp(opval, "and"))
