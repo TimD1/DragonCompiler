@@ -260,6 +260,28 @@ char* type_string(int token)
 			return "integer keyword"; // BAD!
 		case REAL:
 			return "real keyword"; // BAD!
+
+		case ADDOP:
+			return "addop";
+		case MULOP:
+			return "mulop";
+		case RELOP:
+			return "relop";
+		case ASSOP:
+			return ":=";
+		case NOT:
+			return "not";
+			
+		case ARRAYOP:
+			return "[]";
+		case PARENOP:
+			return "()";
+		case LISTOP:
+			return ",";
+
+		case IDENT:
+			return "ident";
+
 		default:
 			return "other";
 	}

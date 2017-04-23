@@ -23,6 +23,8 @@ int top(stack_t* stack)
 
 void swap(stack_t* stack)
 {
+	if(stack->top_idx < 1)
+		fprintf(stderr, "\nERROR, LINE %d: Cannot perform swap on single element stack.\n", yylineno);
 	int old_top = stack->reg[ stack->top_idx ];
 	int new_top = stack->reg[ stack->top_idx-1 ];
 	stack->reg[ stack->top_idx ] = new_top;

@@ -159,10 +159,10 @@ int main(int argc, char** argv)
 
 /* order here specifies precedence */
 %left ASSOP
-%left ADDOP
-%left MULOP
 %left RELOP
 %left NOT
+%left ADDOP
+%left MULOP
 
 %right THEN ELSE /* choose closest if statement */
 
@@ -372,6 +372,8 @@ stmt
 		}
 	| FOR var ASSOP expr DOWNTO expr DO stmt
 		{
+			check_types($4, $6);
+			check_types($2, $4);
 			$$ = str_tree(FOR, $1,
 					op_tree(ASSOP, $3, $2, $4),
 					str_tree(DOWNTO, "downto do", $6, $8)

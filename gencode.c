@@ -349,6 +349,9 @@ void call_procedure(tree_t* n)
 /* Given pointer to expression in tree, generate code for expression */
 void gencode(tree_t* n)
 {
+	if(empty(n))
+		return;
+
 	/* Case 0: n is a left leaf */
 	if(leaf_node(n) && n->ershov_num == 1)
 		print_code("mov", reg_string(top(rstack)), string_value(n));

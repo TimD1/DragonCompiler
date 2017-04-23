@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "tree.h"
+#include "hash.h"
 #include "externs.h"
 #include "y.tab.h"
 
@@ -174,6 +175,40 @@ void print_tree(tree_t *t, int spaces)
 			
 }
 
+void print_node(tree_t* n)
+{
+	fprintf(stderr, "TYPE:\t%s\n", type_string(n->type));
+	fprintf(stderr, "ERSHOV:\t%d\n", n->ershov_num);
+	switch(n->type)
+	{
+		case INUM:
+			fprintf(stderr, "VALUE:\t%d\n", n->attribute.ival);
+			break;
+		case RNUM:
+			fprintf(stderr, "VALUE:\t%f\n", n->attribute.fval);
+			break;
+		case IDENT:
+			fprintf(stderr, "VALUE:\t%s\n", n->attribute.sval);
+			break;
+		defaul:
+			fprintf(stderr, "VALUE:\t%s\n", n->attribute.opval);
+			break;
+	}
+
+	fprintf(stderr, "LEFT:\t");
+	if(empty(n->left))
+		fprintf(stderr, "empty\n");
+	else
+		fprintf(stderr, "%s\n", type_string(n->left->type));
+	
+	fprintf(stderr, "RIGHT:\t");
+	if(empty(n->right))
+		fprintf(stderr, "empty\n\n");
+	else
+		fprintf(stderr, "%s\n\n", type_string(n->right->type));
+
+}
+
 
 void debug_tree(tree_t *t, int spaces)
 {
@@ -237,39 +272,6 @@ void debug_tree(tree_t *t, int spaces)
 	debug_tree(t->left, spaces+1);
 	debug_tree(t->right, spaces+1);
 			
-}
-
-
-int eval_tree(tree_t *t)
-{
-	int lvalue, rvalue;
-
-	assert( t != NULL );
-
-	switch(t->type) {
-		case INUM:
-			return t->attribute.ival;
-		case RNUM:
-			return t->attribute.fval;
-		case ADDOP:
-			lvalue = eval_tree( t->left );
-			rvalue = eval_tree( t->right );
-			if( !strcmp(t->attribute.opval, "+") ) {
-				return lvalue + rvalue;
-			} else if ( !strcmp(t->attribute.opval, "-") ) {
-				return lvalue - rvalue;
-			}
-			else assert(0);
-		case MULOP:
-			lvalue = eval_tree( t->left );
-			rvalue = eval_tree( t->right );
-			if( !strcmp(t->attribute.opval, "*") ) {
-				return lvalue * rvalue;
-			} else if ( !strcmp(t->attribute.opval, "/") ) {
-				return lvalue / rvalue;
-			}
-			else assert(0);
-	}
 }
 
 
@@ -510,17 +512,19 @@ void number_tree(tree_t* t)
 {
 	// handle empty or short expressions
 	if(t == NULL) { /* do nothing */ }
-	else if(empty(t)) { t->ershov_num == 0; }
+	else if(empty(t)) { t->ershov_num = 0; }
 	else if(leaf_node(t)) { t->ershov_num = 1; }
 
 	// handle unary operators
 	else if(empty(t->left) && !empty(t->right))
 	{
+		t->left->ershov_num = -1;
 		number_tree(t->right);
 		t->ershov_num = t->right->ershov_num;
 	}
 	else if(empty(t->right) && !empty(t->left))
 	{
+		t->right->ershov_num = -1;
 		number_tree(t->left);
 		t->ershov_num = t->left->ershov_num;
 	}

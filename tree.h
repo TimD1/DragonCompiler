@@ -34,9 +34,9 @@ tree_t* empty_tree();
 
 
 void print_tree(tree_t *t, int spaces);
+void print_node(tree_t *t);
 void debug_tree(tree_t *t, int spaces);
 void number_tree(tree_t *t);
-int eval_tree(tree_t *expr);
 
 int type(tree_t* expr);
 int empty(tree_t* node);
