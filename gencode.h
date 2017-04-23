@@ -29,9 +29,12 @@ void print_code(char* opval, char* left, char* right);
 char* string_value(tree_t* n);
 char* get_end(char* r);
 
+void start_if_gencode(tree_t* n, int l);
+void start_if_else_gencode(tree_t* n, int l);
+void mid_if_else_gencode(int l);
+void end_if_gencode(int l);
+
 void assignment_gencode(tree_t* n);
-void start_if_gencode(tree_t* n, int label_num);
-void end_if_gencode(tree_t* n, int label_num);
 void call_procedure(tree_t* n);
 char* var_to_assembly(char* name);
 void gencode(tree_t* n);

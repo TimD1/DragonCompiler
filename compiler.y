@@ -16,7 +16,7 @@ int yydebug = 1;
 
 int yywrap() { return 1; }
 
-void yyerror(const char *str) { fprintf(stderr, "\nERROR: %s\n", str); }
+void yyerror(const char *str) { fprintf(stderr, "\nERROR, LINE %d: %s\n", yylineno, str); }
 
 int main(int argc, char** argv) 
 { 
@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 /* control flow keyword tokens */
 %token <sval> BEG END
 %token <ival> IF /* count statements for assembly jumps */
-%token <sval> THEN ELSE
+%token <sval> THEN THAN ELSE
 %token <sval> DO WHILE
 %token <sval> FOR DOWNTO TO
 %token <sval> REPEAT UNTIL
@@ -335,16 +335,17 @@ stmt
 		}
 	| compound_stmt
 		{ $$ = $1; }
-	| IF expr { start_if_gencode($2, $1); } THEN stmt
+ 	| IF expr THEN { start_if_gencode($2, $1); } stmt 
 		{
 			$$ = str_tree(IF, "if then", $2, $5);
 			enforce_type($2, BOOL);
-			end_if_gencode($$, $1);
+			end_if_gencode($1);
 		}
-	| IF expr {;} THEN stmt ELSE stmt
+ 	| IF expr THAN { start_if_else_gencode($2, $1); } stmt { mid_if_else_gencode($1); } ELSE stmt 
 		{
-			$$ = str_tree(IF, "if then-else", $2, str_tree(IF, "then else", $5, $7));
+			$$ = str_tree(IF, "if then-else", $2, str_tree(IF, "then else", $5, $8));
 			enforce_type($2, BOOL);
+			end_if_gencode(($1+1));
 		}
 	| WHILE expr DO stmt
 		{

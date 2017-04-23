@@ -134,13 +134,18 @@ real			{
 if				{
 					fprintf( stderr, " [IF]" );
 					yylval.ival = assembly_label_num;
-					assembly_label_num+=2;
+					assembly_label_num += 2;
 					return IF;
 				}
 then			{
 					fprintf( stderr, " [THEN]" );
 					yylval.sval = strdup(yytext);
 					return THEN;
+				}
+than			{
+					fprintf( stderr, " [THAN]" );
+					yylval.sval = strdup(yytext);
+					return THAN;
 				}
 else			{
 					fprintf( stderr, " [ELSE]" );
