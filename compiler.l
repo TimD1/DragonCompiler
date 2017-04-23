@@ -180,7 +180,8 @@ to				{
 				}
 repeat			{
 					fprintf( stderr, " [REPEAT]" );
-					yylval.sval = strdup(yytext);
+					yylval.ival = assembly_label_num;
+					assembly_label_num++;
 					return REPEAT;
 				}
 until			{

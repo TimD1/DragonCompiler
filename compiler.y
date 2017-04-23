@@ -118,9 +118,11 @@ int main(int argc, char** argv)
 %token <sval> BEG END
 %token <ival> IF /* count statements for assembly jumps */
 %token <sval> THEN THAN ELSE
-%token <sval> DO WHILE
+%token <sval> DO
+%token <ival> WHILE
 %token <sval> FOR DOWNTO TO
-%token <sval> REPEAT UNTIL
+%token <ival> REPEAT
+%token <sval> UNTIL
 
 /* empty token */
 %token <sval> EMPTY
@@ -353,10 +355,11 @@ stmt
 			enforce_type($2, BOOL);
 			end_while_do_gencode($1);
 		}
-	| REPEAT stmt UNTIL expr
+	| REPEAT { start_repeat_until_gencode($1); } stmt UNTIL expr
 		{
-			$$ = str_tree(REPEAT, "repeat until", $2, $4);
-			enforce_type($4, BOOL);
+			$$ = str_tree(REPEAT, "repeat until", $3, $5);
+			enforce_type($5, BOOL);
+			end_repeat_until_gencode($5, $1);
 		}
 	| FOR var ASSOP expr TO expr DO stmt
 		{
