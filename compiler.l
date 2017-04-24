@@ -174,7 +174,7 @@ to				{
 					yylval.sval = strdup(yytext);
 					return TO;
 				}
-"down to"		{
+downto			{
 					fprintf( stderr, " [DOWNTO]" );
 					yylval.sval = strdup(yytext);
 					return DOWNTO;

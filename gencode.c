@@ -17,7 +17,7 @@ FILE* outfile;
    	---------
 	
 	rax = return value & division
-	rbx = save for later
+	rbx = for loops
 	rsp = stack pointer
 	rbp = base pointer
 	rip = instruction pointer
@@ -297,30 +297,27 @@ void start_for_gencode(int l, tree_t* var, tree_t* e1, char* to_downto, tree_t* 
 	// assign variable to start loop
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# start for\n");
 	gencode(e1);
-	if (GENCODE_DEBUG) fprintf(outfile, "\t# evaluated start position\n");
 	fprintf(outfile, "\tmov\t\t%s, %s\n", string_value(var), reg_string(top(rstack)));
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# evaluated start position\n");
 	
 	// save value which ends the loop
 	gencode(e2);
+	fprintf(outfile, "\tmov\t\trbx, %s\n", reg_string(top(rstack)));
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# evaluated end position\n");
-	int end = top(rstack);
-	pop(rstack);
 
 	fprintf(outfile, ".L%d:\n", l);
 	if(UP)
 	{
-		fprintf(outfile, "\tcmp\t\t%s, %s\n", string_value(var), reg_string(end));
-		fprintf(outfile, "\tjge .L%d\n", l+1);
-		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start to");
+		fprintf(outfile, "\tcmp\t\t%s, rbx\n", string_value(var));
+		fprintf(outfile, "\tjg .L%d\n", l+1);
+		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start do");
 	}
 	else
 	{
-		fprintf(outfile, "\tcmp\t\t%s, %s\n", string_value(var), reg_string(end));
-		fprintf(outfile, "\tjle .L%d\n", l+1);
-		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start downto");
+		fprintf(outfile, "\tcmp\t\t%s, rbx\n", string_value(var));
+		fprintf(outfile, "\tjl .L%d\n", l+1);
+		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start do");
 	}
-
-	push(end, rstack);
 }
 
 
@@ -337,7 +334,7 @@ void end_for_gencode(int l, tree_t* var, char* to_downto)
 
 	fprintf(outfile, "\tjmp .L%d\n", l);
 	fprintf(outfile, ".L%d:\n", l+1);
-	if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n");
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# end for-do\n");
 }
 
 
