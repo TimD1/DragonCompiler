@@ -287,6 +287,60 @@ void end_repeat_until_gencode(tree_t* n, int label_num)
 }
 
 
+void start_for_gencode(int l, tree_t* var, tree_t* e1, char* to_downto, tree_t* e2)
+{
+	// determine whether variable counts up or down
+	int UP;
+	if(!strcmp(to_downto, "to")) UP = 1;
+	else UP = 0;
+
+	// assign variable to start loop
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# start for\n");
+	gencode(e1);
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# evaluated start position\n");
+	fprintf(outfile, "\tmov\t\t%s, %s\n", string_value(var), reg_string(top(rstack)));
+	
+	// save value which ends the loop
+	gencode(e2);
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# evaluated end position\n");
+	int end = top(rstack);
+	pop(rstack);
+
+	fprintf(outfile, ".L%d:\n", l);
+	if(UP)
+	{
+		fprintf(outfile, "\tcmp\t\t%s, %s\n", string_value(var), reg_string(end));
+		fprintf(outfile, "\tjge .L%d\n", l+1);
+		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start to");
+	}
+	else
+	{
+		fprintf(outfile, "\tcmp\t\t%s, %s\n", string_value(var), reg_string(end));
+		fprintf(outfile, "\tjle .L%d\n", l+1);
+		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start downto");
+	}
+
+	push(end, rstack);
+}
+
+
+void end_for_gencode(int l, tree_t* var, char* to_downto)
+{
+	int UP;
+	if(!strcmp(to_downto, "to")) UP = 1;
+	else UP = 0;
+
+	if(UP)
+		fprintf(outfile, "\tinc\t\t%s\n", string_value(var));
+	else
+		fprintf(outfile, "\tdec\t\t%s\n", string_value(var));
+
+	fprintf(outfile, "\tjmp .L%d\n", l);
+	fprintf(outfile, ".L%d:\n", l+1);
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n");
+}
+
+
 /* Given pointer to procedure call, copy params into correct registers
    before calling it. If it's 'write' or 'read', use overloaded fprintf. */
 void call_procedure(tree_t* n)

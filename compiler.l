@@ -165,7 +165,8 @@ while			{
 				}
 for				{
 					fprintf( stderr, " [FOR]" );
-					yylval.sval = strdup(yytext);
+					yylval.ival = assembly_label_num;
+					assembly_label_num += 2;
 					return FOR;
 				}
 to				{

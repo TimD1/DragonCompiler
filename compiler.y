@@ -115,13 +115,11 @@ int main(int argc, char** argv)
 %token <sval> BOOL
 
 /* control flow keyword tokens */
+%token <ival> IF WHILE FOR REPEAT /* count statements for assembly jumps */
 %token <sval> BEG END
-%token <ival> IF /* count statements for assembly jumps */
 %token <sval> THEN THAN ELSE
 %token <sval> DO
-%token <ival> WHILE
-%token <sval> FOR DOWNTO TO
-%token <ival> REPEAT
+%token <sval> DOWNTO TO
 %token <sval> UNTIL
 
 /* empty token */
@@ -361,23 +359,25 @@ stmt
 			enforce_type($5, BOOL);
 			end_repeat_until_gencode($5, $1);
 		}
-	| FOR var ASSOP expr TO expr DO stmt
+	| FOR var ASSOP expr TO expr DO { start_for_gencode($1, $2, $4, $5, $6); } stmt
 		{
 			check_types($4, $6);
 			check_types($2, $4);
-			$$ = str_tree(FOR, $1,
+			$$ = str_tree(FOR, "for",
 					op_tree(ASSOP, $3, $2, $4),
-					str_tree(TO, "to do", $6, $8)
+					str_tree(TO, "to do", $6, $9)
 				);
+			end_for_gencode($1, $2, $5);
 		}
-	| FOR var ASSOP expr DOWNTO expr DO stmt
+	| FOR var ASSOP expr DOWNTO expr DO { start_for_gencode($1, $2, $4, $5, $6); } stmt
 		{
 			check_types($4, $6);
 			check_types($2, $4);
-			$$ = str_tree(FOR, $1,
+			$$ = str_tree(FOR, "for",
 					op_tree(ASSOP, $3, $2, $4),
-					str_tree(DOWNTO, "downto do", $6, $8)
+					str_tree(DOWNTO, "downto do", $6, $9)
 				);
+			end_for_gencode($1, $2, $5);
 		}
 	;
 

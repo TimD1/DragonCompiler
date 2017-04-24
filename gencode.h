@@ -37,6 +37,8 @@ void start_while_do_gencode(tree_t* n, int l);
 void end_while_do_gencode(int l);
 void start_repeat_until_gencode(int l);
 void end_repeat_until_gencode(tree_t* , int l);
+void start_for_gencode(int l, tree_t* var, tree_t* e1, char* to_downto, tree_t* e2);
+void end_for_gencode(int l, tree_t* var, char* to_downto);
 
 void assignment_gencode(tree_t* n);
 void call_procedure(tree_t* n);
