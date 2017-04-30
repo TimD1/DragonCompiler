@@ -3,7 +3,7 @@ OVERALL CHECKLIST
 -----------------
 
  (1.0) Lexical Analysis
-	Line numbering
+X	Line numbering
 X	Two styles of comments
 	(optional) Scientific notation 
 
@@ -24,14 +24,14 @@ X	Visual print
 X	Memory-leak handler 
 
  (3.0) Semantic Analysis & Type Checking
-----See check list below
+X	See check list below
 X	Error reporting
 	(optional) Error recovery 
 
  (4.0) Code Generation
-	Input/Output statements
-	Simple expressions (arithmetic and relational): gencode
-	Statements (assignment, conditional, loop)
+X	Input/Output statements
+X	Simple expressions (arithmetic and relational): gencode
+X	Statements (assignment, conditional, loop)
 	Nonlocal names: base frame pointer (static scope parent)
 	Recursive routines (example: GCD program)
 	Complex expressions (register spilling)
@@ -63,8 +63,8 @@ X		 (no type promotions)
 
 3. Semantic rules for Statements
 X	3.1. Statements do not return values
-	3.2. The test expression for IF-THEN, IF-THEN-ELSE, WHILE-DO must be Boolean-valued;
-		 note that the Boolean type must be implicitly defined
+X	3.2. The test expression for IF-THEN, IF-THEN-ELSE, WHILE-DO must be Boolean-valued;
+X		 note that the Boolean type must be implicitly defined
 X	3.3. The ELSE clause always binds to the closest IF 
 X		 (resolution of the dangling ELSE problem)
 X	3.4. The variable type in FOR-DO must match the types of lower bound and 
