@@ -416,6 +416,7 @@ expr
 	| simple_expr RELOP simple_expr 	/* or.. recurse, allowing multiple relops */
 		{ 
 			tree_t* t = op_tree(RELOP, $2, $1, $3);
+			number_tree(t);
 			type(t);
 			$$ = t;
 		}
