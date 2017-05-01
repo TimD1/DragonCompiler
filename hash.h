@@ -41,6 +41,8 @@ typedef struct table_s {
 	entry_t *hash_table[ TABLE_SIZE ];
 	int id;
 	int table_size;
+	int num_params;
+	int num_locals;
 	char* table_name;
 	int table_class;
 

@@ -696,6 +696,7 @@ void make_vars(tree_t* var_ptr, tree_t* type_ptr)
 		}
 		var_ptr = var_ptr->left;
 	}
+	top_table()->num_locals = top_table()->table_size - top_table()->num_params;
 }
 
 
@@ -742,6 +743,7 @@ void add_io(tree_t* ident_list_ptr)
 
 		ident_list_ptr = ident_list_ptr->left;
 	}
+	top_table()->num_params = top_table()->table_size;
 	add_io_code();
 }
 
@@ -836,6 +838,7 @@ void add_params(tree_t* param_ptr)
 
 		param_ptr = param_ptr->left;
 	}
+	top_table()->num_params = top_table()->table_size;
 }
 
 
@@ -962,7 +965,11 @@ int get_entry_id(char* name)
 {
 	entry_t* entry_ptr = get_entry(top_table(), name);
 	if(entry_ptr != NULL)
-	{
 		return entry_ptr->id;
+	else
+	{
+		fprintf(stderr, "ERROR, LINE %d: entry '%s' does not exist in top table.\n", 
+			yylineno, name);
+		exit(0);
 	}
 }

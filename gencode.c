@@ -35,6 +35,50 @@ FILE* outfile;
 	r13 = temp var
 	r14 = temp var
 	r15 = temp var (bottom of stack)
+
+
+
+
+
+   STACK FRAME CONTENTS
+   --------------------
+
+   low memory addresses
+			.
+   			.
+			.
+   -------------------
+   |     temp_reg3   | 	<--- rsp
+   -------------------
+   |     temp_reg2   |
+   -------------------
+   |     temp_reg1   |
+   -------------------
+   |     local3      |
+   -------------------
+   |     local2      |
+   -------------------
+   |     local1      |
+   -------------------
+   |     parent      |
+   -------------------
+   |     return_val  |
+   -------------------
+   |     old_rbp     | 	<--- rbp
+   -------------------
+   |     old_rip     |	(automatically added/removed by call/ret)
+   -------------------
+   |     param3      |
+   -------------------
+   |     param2      |
+   -------------------
+   |     param1      |
+   -------------------
+			.
+   			.
+			.
+   high memory addresses
+
 */
 
 
@@ -94,18 +138,8 @@ void function_header(tree_t* n)
 	fprintf(outfile, "\tpush\trbp\n");
 	fprintf(outfile, "\tmov\t\trbp, rsp\n\n");
 
-	/* // copy values from registers to local parameters */
-	/* if (GENCODE_DEBUG) fprintf(outfile, "\n# copy for function: register -> parameter\n"); */
-	/* static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"}; */
-	/* entry_t* entry_ptr = find_entry(top_table(), fn_name); */
-	/* if(entry_ptr != NULL) */
-	/* { */
-	/* 	for(int i = 0; i < entry_ptr->arg_num; i++) */
-	/* 	{ */
-	/* 		fprintf(outfile, "\tmov QWORD PTR [rbp-%d], %s\n", 8*(i+1), arg_regs[i]); */
-	/* 	} */
-	/* } */
-
+	// allocate room for local vars, return value, and static parent pointer
+	fprintf(outfile, "\tsub\t\trsp, %d\n\n", 8*(top_table()->num_locals + 2));
 }
 
 
@@ -124,6 +158,7 @@ void function_footer(tree_t* n)
 	char* fn_name = name_ptr->attribute.sval;
 
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# function footer\n");
+	fprintf(outfile, "\tmov\t\trsp, rbp\n");
 	fprintf(outfile, "\tpop\t\trbp\n");
 	fprintf(outfile, "\tret\n");
 	fprintf(outfile, "\t.size\t%s, .-%s\n\n\n", fn_name, fn_name);
@@ -139,7 +174,10 @@ void main_header()
 	fprintf(outfile, "main:\n");
 	fprintf(outfile, "\tpush\trbp\n");
 	fprintf(outfile, "\tmov\t\trbp, rsp\n");
-	fprintf(outfile, "\tsub\t\trsp, 256\n"); // leave constant for now
+
+	// allocate room for local vars, return value, and static parent pointer
+	fprintf(outfile, "\tsub\t\trsp, %d\n\n", 8*(top_table()->num_locals + 2));
+
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# main code\n");
 }
 
@@ -197,12 +235,26 @@ char* string_value(tree_t* n)
 /* Given variable name, return assembly pointer to location */
 char* var_to_assembly(char* name)
 {
-	char str[50] = "QWORD PTR [rbp-";
-	char num[20];
-	sprintf(num, "%d", get_entry_id(name)*8);
-	strcat(str, num);
-	strcat(str, "]");
-	return strdup(str);
+	int id = get_entry_id(name);
+	int params = top_table()->num_params;
+	if(id <= params) // parameter
+	{
+		char str[50] = "QWORD PTR [rbp+";
+		char num[20];
+		sprintf(num, "%d", (params-id+2)*8); // store below base pointer and rip
+		strcat(str, num);
+		strcat(str, "]");
+		return strdup(str);
+	}
+	else // local variable
+	{
+		char str[50] = "QWORD PTR [rbp-";
+		char num[20];
+		sprintf(num, "%d", (id-params+2)*8); 	// store above base pointer,
+		strcat(str, num);						// leaving room for return value
+		strcat(str, "]");						// and static parent pointer
+		return strdup(str);
+	}
 }
 
 
@@ -377,22 +429,23 @@ void call_procedure(tree_t* n)
 		fprintf(outfile, "\tmov\t\teax, 0\n");
 		fprintf(outfile, "\tcall\tfprintf\n\n");
 	}
-	/* else // normal function */
-	/* { */
-	/* 	if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name); */
-	/* 	entry_t* entry_ptr = find_entry(top_table(), name); */
-	/* 	if(entry_ptr != NULL) // function valid */
-	/* 	{ */
-	/* 		tree_t* list_ptr = n->right; */
-	/* 		fprintf(outfile, "# copy for procedure: variable -> register\n"); */
-	/* 		for(int i = 0; i < entry_ptr->arg_num; i++) */
-	/* 		{ */
-	/* 			fprintf(outfile,"\tmov %s, %s\n", arg_regs[i], string_value(list_ptr->right)); */
-	/* 			list_ptr = list_ptr->left; */
-	/* 		} */
-	/* 		fprintf(outfile, "\tcall %s\n", name); */
-	/* 	} */
-	/* } */
+	else // normal function
+	{
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name);
+		entry_t* entry_ptr = find_entry(top_table(), name);
+		if(entry_ptr != NULL) // function valid
+		{
+			tree_t* list_ptr = n->right;
+			fprintf(outfile, "# copy for procedure: variable -> stack\n");
+			for(int i = 0; i < entry_ptr->arg_num; i++)
+			{
+				fprintf(outfile,"\tpush %s\n", string_value(list_ptr->right));
+				list_ptr = list_ptr->left;
+			}
+			fprintf(outfile, "\tcall %s\n", name);
+			fprintf(outfile, "\tadd\t\trsp, %d\n", 8*entry_ptr->arg_num);
+		}
+	}
 
 }
 
