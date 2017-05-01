@@ -1,7 +1,6 @@
 	.file	"func.c"
 	.intel_syntax noprefix
 	.text
-
 	.globl	increment
 	.type	increment, @function
 increment:
@@ -13,8 +12,6 @@ increment:
 	pop	rbp
 	ret
 	.size	increment, .-increment
-
-
 	.globl	complicated_operation
 	.type	complicated_operation, @function
 complicated_operation:
@@ -24,8 +21,8 @@ complicated_operation:
 	mov	DWORD PTR [rbp-8], esi
 	mov	DWORD PTR [rbp-12], edx
 	mov	DWORD PTR [rbp-16], ecx
-	mov	DWORD PTR [rbp-20], r8
-	mov	DWORD PTR [rbp-24], r9
+	mov	DWORD PTR [rbp-20], r8d
+	mov	DWORD PTR [rbp-24], r9d
 	mov	edx, DWORD PTR [rbp-8]
 	mov	eax, DWORD PTR [rbp-12]
 	lea	ecx, [rdx+rax]
@@ -41,8 +38,6 @@ complicated_operation:
 	pop	rbp
 	ret
 	.size	complicated_operation, .-complicated_operation
-
-
 	.globl	main
 	.type	main, @function
 main:
@@ -63,20 +58,19 @@ main:
 	mov	eax, DWORD PTR [rbp-4]
 	mov	edi, eax
 	call	increment
-	mov	r8, DWORD PTR [rbp-24]
+	mov	r8d, DWORD PTR [rbp-24]
 	mov	edi, DWORD PTR [rbp-20]
 	mov	ecx, DWORD PTR [rbp-16]
 	mov	edx, DWORD PTR [rbp-12]
 	mov	esi, DWORD PTR [rbp-8]
 	mov	eax, DWORD PTR [rbp-4]
-	mov	r9, r8
-	mov	r8, edi
+	mov	r9d, r8d
+	mov	r8d, edi
 	mov	edi, eax
 	call	complicated_operation
 	mov	eax, 0
 	leave
 	ret
 	.size	main, .-main
-
 	.ident	"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.4) 5.4.0 20160609"
 	.section	.note.GNU-stack,"",@progbits
