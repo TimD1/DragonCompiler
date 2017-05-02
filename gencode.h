@@ -28,6 +28,7 @@ char* ia64(char* opval);
 void print_code(char* opval, char* left, char* right);
 char* string_value(tree_t* n);
 char* get_end(char* r);
+char* get_static_parent();
 
 void start_if_gencode(tree_t* n, int l);
 void start_if_else_gencode(tree_t* n, int l);

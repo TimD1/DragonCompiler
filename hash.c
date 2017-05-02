@@ -9,6 +9,7 @@
 #include "externs.h"
 
 table_t* head_table;
+table_t* caller;
 
 /* Peter J. Weinberger's hash function, from Red Dragon Book */
 int hashpjw( char *s )
@@ -39,6 +40,7 @@ table_t* push_table(char* name, int class)
 	ptr->table_name = strdup(name);
 	ptr->table_class = class;
 	ptr->table_size = 0;
+	ptr->parent = top_table();
 
 	// set new table's pointers
 	ptr->next = head_table;
@@ -48,6 +50,8 @@ table_t* push_table(char* name, int class)
 	// adjust surrounding pointers
 	head_table->prev->next = ptr;
 	head_table->prev = ptr;
+	
+	return ptr;
 }
 
 
@@ -55,8 +59,8 @@ table_t* push_table(char* name, int class)
 void pop_table()
 {
 	// ensure we don't pop the head of our list
-	table_t* top_table = head_table->prev;
-	if(top_table == head_table)
+	table_t* to_remove = head_table->prev;
+	if(to_remove == head_table)
 	{
 		fprintf(stderr, "Cannot pop head table!");
 		return;
@@ -67,7 +71,7 @@ void pop_table()
 	{
 		while(1)
 		{
-			entry_t* cur_entry = top_table->hash_table[i];
+			entry_t* cur_entry = to_remove->hash_table[i];
 			
 			// no entries, we're done
 			if(cur_entry == NULL)
@@ -100,13 +104,17 @@ void pop_table()
 
 
 	// adjust surrounding pointers to avoid table
-	top_table->prev->next = head_table;
-	head_table->prev = top_table->prev;
+	to_remove->prev->next = head_table;
+	head_table->prev = to_remove->prev;
 
 	// remove top table
-	top_table->next = NULL;
-	top_table->prev = NULL;
-	free(top_table);
+	to_remove->next = NULL;
+	to_remove->prev = NULL;
+	to_remove->parent = NULL;
+	free(to_remove);
+
+	// reset caller
+	caller = top_table();
 }
 
 
@@ -114,7 +122,28 @@ void pop_table()
 table_t* top_table()
 {
 	return head_table->prev;
-}	
+}
+
+
+
+
+
+/* /1* Return the first table which matches the specified name. *1/ */
+/* table_t* get_table(char* name) */
+/* { */
+/* 	table_t* t = top_table(); */
+/* 	while(strcmp(t, name)) */
+/* 	{ */
+/* 		if(t == head_table) */
+/* 		{ */
+/* 			fprintf(stderr, "\nERROR: cannot find table '%s'.\n", name); */
+/* 			exit(0); */
+/* 		} */
+/* 		t = t->prev; */
+/* 	} */
+/* 	return t; */
+/* } */
+
 
 
 /* Prints the specified table */
@@ -961,15 +990,16 @@ void make_arr_rnum(char* name, int start_idx, int stop_idx)
 	insert_entry(ptr, top_table());
 }
 
-int get_entry_id(char* name)
+int get_entry_id(table_t* table, char* name)
 {
-	entry_t* entry_ptr = get_entry(top_table(), name);
+	entry_t* entry_ptr = get_entry(table, name);
 	if(entry_ptr != NULL)
 		return entry_ptr->id;
 	else
-	{
-		fprintf(stderr, "ERROR, LINE %d: entry '%s' does not exist in top table.\n", 
-			yylineno, name);
-		exit(0);
-	}
+		return 0;
+	/* { */
+	/* 	fprintf(stderr, "\nERROR, LINE %d: entry '%s' does not exist in top table.\n", */ 
+	/* 		yylineno, name); */
+	/* 	exit(0); */
+	/* } */
 }

@@ -45,6 +45,7 @@ typedef struct table_s {
 	int num_locals;
 	char* table_name;
 	int table_class;
+	struct table_s *parent;
 
 	// use a double linked list as a stack
 	struct table_s *prev;
@@ -77,17 +78,18 @@ void make_arr_inum(char* name, int start_idx, int stop_idx);
 void make_arr_rnum(char* name, int start_idx, int stop_idx);
 
 entry_t* get_entry(table_t* table, char* name);
-int get_entry_id(char* name);
+int get_entry_id(table_t* table, char* name);
 entry_t* find_entry(table_t* table, char* name); 
 int insert_entry(entry_t* entry_ptr, table_t* table);
 
 table_t* create_table();
-table_t* push_table(char* name, int class);
+table_t* push_table(char* name, int class_);
 table_t* top_table();
 void print_table(table_t* table);
 void pop_table();
 
 /* GLOBALS */
 extern table_t* head_table;
+extern table_t* caller;
 
 #endif

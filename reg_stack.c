@@ -48,7 +48,7 @@ int pop(stack_t* stack)
 	if(size(stack) <= 0)
 	{
 		fprintf(stderr, "\nERROR, LINE %d: Cannot pop from empty stack.\n", yylineno);
-		exit(1);
+		exit(0);
 	}
 
 	int top_val = top(stack);
@@ -62,7 +62,7 @@ void push(int new_reg, stack_t* stack)
 	if(size(stack) >= MAX_REGS)
 	{
 		fprintf(stderr, "\nERROR, LINE %d: Cannot push onto full stack.\n", yylineno);
-		exit(1);
+		exit(0);
 	}
 
 	stack->top_idx++;

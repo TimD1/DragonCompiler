@@ -60,9 +60,9 @@ FILE* outfile;
    -------------------
    |     local1      |
    -------------------
-   |     parent      |
+   |     parent      |  rbp - 16
    -------------------
-   |     return_val  |
+   |     return_val  |  rbp - 8
    -------------------
    |     old_rbp     | 	<--- rbp
    -------------------
@@ -138,8 +138,12 @@ void function_header(tree_t* n)
 	fprintf(outfile, "\tpush\trbp\n");
 	fprintf(outfile, "\tmov\t\trbp, rsp\n\n");
 
-	// allocate room for local vars, return value, and static parent pointer
-	fprintf(outfile, "\tsub\t\trsp, %d\n\n", 8*(top_table()->num_locals + 2));
+	// allocate room for static parent pointer, return value, and local vars
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# set up stack frame\n");
+	fprintf(outfile, "\tpush\t0\n");
+	fprintf(outfile, "\tpush\t%s\n", get_static_parent());
+	fprintf(outfile, "\tsub\t\trsp, %d\n", 8*(top_table()->num_locals));
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# end function header\n");
 }
 
 
@@ -175,8 +179,12 @@ void main_header()
 	fprintf(outfile, "\tpush\trbp\n");
 	fprintf(outfile, "\tmov\t\trbp, rsp\n");
 
-	// allocate room for local vars, return value, and static parent pointer
-	fprintf(outfile, "\tsub\t\trsp, %d\n\n", 8*(top_table()->num_locals + 2));
+	// allocate room for static parent pointer, return value, and local vars
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# set up stack frame\n");
+	fprintf(outfile, "\tpush\t0\n");
+	fprintf(outfile, "\tpush\trbp\n");
+	fprintf(outfile, "\tsub\t\trsp, %d\n", 8*(top_table()->num_locals));
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# end function header\n");
 
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# main code\n");
 }
@@ -235,11 +243,37 @@ char* string_value(tree_t* n)
 /* Given variable name, return assembly pointer to location */
 char* var_to_assembly(char* name)
 {
-	int id = get_entry_id(name);
+	// count how many scopes back the variable is
+	int scopes_back = 0;
+	table_t* table = top_table();
+	int id = get_entry_id(table, name);
+	while(id == 0)
+	{
+		scopes_back++;
+		if(table == head_table)
+		{
+			fprintf(stderr, "\nERROR, LINE %d: variable '%s' could not be found.\n", 
+				yylineno, name);
+			exit(0);
+		}
+		table = table->parent;
+		id = get_entry_id(table, name);
+	}
+
+	// traverse back correct number of scopes to access variable 
+	char base_ptr[100] = "";
+	for(int i = 0; i < scopes_back; i++)
+		strcat(base_ptr, "[");
+	strcat(base_ptr, "rbp");
+	for(int i = 0; i < scopes_back; i++)
+		strcat(base_ptr, "-16]");
+
+	// find offset for parameter or variable
 	int params = top_table()->num_params;
 	if(id <= params) // parameter
 	{
-		char str[50] = "QWORD PTR [rbp+";
+		char str[150];
+		sprintf(str, "QWORD PTR [%s+", base_ptr);
 		char num[20];
 		sprintf(num, "%d", (params-id+2)*8); // store below base pointer and rip
 		strcat(str, num);
@@ -248,7 +282,8 @@ char* var_to_assembly(char* name)
 	}
 	else // local variable
 	{
-		char str[50] = "QWORD PTR [rbp-";
+		char str[150];
+		sprintf(str, "QWORD PTR [%s-", base_ptr);
 		char num[20];
 		sprintf(num, "%d", (id-params+2)*8); 	// store above base pointer,
 		strcat(str, num);						// leaving room for return value
@@ -412,7 +447,7 @@ void call_procedure(tree_t* n)
 		fprintf(outfile, "\tmov\t\trax, QWORD PTR fs:40\n");
 		fprintf(outfile, "\txor\t\teax, eax\n");
 		fprintf(outfile, "\tmov\t\trax, QWORD PTR stdin[rip]\n");
-		fprintf(outfile, "\tlea\t\trdx, [rbp-%d]\n", get_entry_id(var_name)*8);
+		fprintf(outfile, "\tlea\t\trdx, %s\n", var_to_assembly(var_name));
 		fprintf(outfile, "\tmov\t\tesi, OFFSET FLAT:.LC0\n");
 		fprintf(outfile, "\tmov\t\trdi, rax\n");
 		fprintf(outfile, "\tmov\t\teax, 0\n");
@@ -435,6 +470,12 @@ void call_procedure(tree_t* n)
 		entry_t* entry_ptr = find_entry(top_table(), name);
 		if(entry_ptr != NULL) // function valid
 		{
+			if(entry_ptr->entry_class != PROCEDURE)
+			{
+				fprintf(stderr, "\nERROR, LINE %d: '%s' is not a procedure.\n", yylineno, name);
+				exit(0);
+			}
+
 			tree_t* list_ptr = n->right;
 			fprintf(outfile, "# copy for procedure: variable -> stack\n");
 			for(int i = 0; i < entry_ptr->arg_num; i++)
@@ -574,4 +615,18 @@ char* get_end(char* reg)
 		new_reg[4] = '\0';
 	}
 	return strdup(new_reg);
+}
+
+
+/* Gets the static parent pointer, under the following assumptions:
+   1. top_table() points to the new function's symbol table entry
+   2. caller points to the caller's symbol table entry
+   3. the new function was called by a sibling or parent
+*/
+char* get_static_parent()
+{
+	if(top_table()->parent == caller) // called by parent
+		return strdup("[rbp]");
+	else // called by sibling, use that function's parent
+		return strdup("QWORD PTR [[rbp]-16]");
 }

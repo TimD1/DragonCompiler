@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 	if(argc != 2)
 	{
 		fprintf(stderr, "Incorrect number of arguments given.\n");
-		exit(1);
+		exit(0);
 	}
 	
 	// try to open file
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	if(!infile)
 	{
 		fprintf(stderr, "Invalid input file name given.\n");
-		exit(1);
+		exit(0);
 	}
 
 	// create output file by changing extension
@@ -174,7 +174,7 @@ start
 		{ print_tree($1, 0); }
 
 program
-	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' { add_io($5); } ';' decls subprogram_decls { main_header(); } compound_stmt '.'
+	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' { add_io($5); } ';' decls subprogram_decls { main_header(); caller = top_table(); } compound_stmt '.'
 		{
 			$$ = str_tree(PROGRAM, "head body",
 					op_tree(PARENOP, "()", $2, $5),
@@ -243,7 +243,7 @@ subprogram_decls
 	;
 
 subprogram_decl
-	: subprogram_head decls subprogram_decls { function_header($1); } compound_stmt
+	: subprogram_head decls subprogram_decls { function_header($1); caller = top_table(); } compound_stmt
 		{
 			check_function($1, $5);
 			$$ = op_tree(LISTOP, "_", $1, 
