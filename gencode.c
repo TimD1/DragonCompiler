@@ -277,31 +277,41 @@ void grab_nonlocal_var(char* name)
 		fprintf(outfile, "\tmov\t\trcx, QWORD PTR [rcx-16]\n");
 	}
 
-	// find offset for parameter or variable
-	int params = table->num_params;
-	if(id <= params) // parameter
-		fprintf(outfile, "\tmov\t\trcx, QWORD PTR [rcx+%d]\n", (params-id+2)*8);
-	else // local variable
-		fprintf(outfile, "\tmov\t\trcx, QWORD PTR [rcx-%d]\n", (id-params+2)*8);
-
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end nonlocal variable\n");
 }
 
 
-/* Given variable name, return assembly pointer to location */
+/* Given variable name, return assembly pointer to location. Nonlocal variables
+   are handled by the grab_nonlocal_var() function, which is always called directly
+   before this and stores the correct base pointer in rcx. */
 char* var_to_assembly(char* name)
 {
-	// return if nonlocal
-	if(!get_entry_id(top_table(), name))
-		return strdup("rcx");
+	table_t* table = top_table();
+	int id = get_entry_id(table, name);
 
-	// otherwise, it's local! find offset
-	int id = get_entry_id(top_table(), name);
-	int params = top_table()->num_params;
+	char* base_ptr = strdup("rbp"); // if local
+	if(!id)
+		base_ptr = strdup("rcx"); // if nonlocal
+
+	// find entry_id in closest table
+	while(id == 0)
+	{
+		if(table == head_table)
+		{
+			fprintf(stderr, "\nERROR, LINE %d: variable '%s' could not be found.\n", 
+				yylineno, name);
+			exit(0);
+		}
+		table = table->parent;
+		id = get_entry_id(table, name);
+	}
+
+	// find the necesssary offset from the base pointer
+	int params = table->num_params;
 	if(id <= params) // parameter
 	{
 		char str[150];
-		sprintf(str, "QWORD PTR [rbp+");
+		sprintf(str, "QWORD PTR [%s+", base_ptr);
 		char num[20];
 		sprintf(num, "%d", (params-id+2)*8); // store below base pointer and rip
 		strcat(str, num);
@@ -311,7 +321,7 @@ char* var_to_assembly(char* name)
 	else // local variable
 	{
 		char str[150];
-		sprintf(str, "QWORD PTR [rbp-");
+		sprintf(str, "QWORD PTR [%s-", base_ptr);
 		char num[20];
 		sprintf(num, "%d", (id-params+2)*8); 	// store above base pointer,
 		strcat(str, num);						// leaving room for return value
