@@ -28,7 +28,7 @@ char* ia64(char* opval);
 void print_code(char* opval, char* left, char* right);
 char* string_value(tree_t* n);
 char* get_end(char* r);
-char* get_static_parent();
+void push_static_parent();
 
 void start_if_gencode(tree_t* n, int l);
 void start_if_else_gencode(tree_t* n, int l);
@@ -44,6 +44,7 @@ void end_for_gencode(int l, tree_t* var, char* to_downto);
 void assignment_gencode(tree_t* n);
 void call_procedure(tree_t* n);
 char* var_to_assembly(char* name);
+void grab_nonlocal_var(char* name);
 void gencode(tree_t* n);
 
 #endif

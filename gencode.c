@@ -18,6 +18,7 @@ FILE* outfile;
 	
 	rax = return value & division
 	rbx = for loops
+	rcx = nonlocal variable access
 	rsp = stack pointer
 	rbp = base pointer
 	rip = instruction pointer
@@ -26,8 +27,8 @@ FILE* outfile;
 	rsi = reserved for io use
 	rdx = reserved for io use & division
 	
-	rcx = temp var (top of stack)
-	r8  = temp var
+
+	r8  = temp var (top of stack)
 	r9  = temp var
 	r10 = temp var	
 	r11 = temp var
@@ -141,7 +142,7 @@ void function_header(tree_t* n)
 	// allocate room for static parent pointer, return value, and local vars
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# set up stack frame\n");
 	fprintf(outfile, "\tpush\t0\n");
-	fprintf(outfile, "\tpush\t%s\n", get_static_parent());
+	push_static_parent();
 	fprintf(outfile, "\tsub\t\trsp, %d\n", 8*(top_table()->num_locals));
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end function header\n");
 }
@@ -233,6 +234,7 @@ char* string_value(tree_t* n)
 		
 		case IDENT:
 		case STRING:
+			grab_nonlocal_var(n->attribute.sval);
 			return var_to_assembly(n->attribute.sval);
 		default:
 			return strdup("???");
@@ -240,9 +242,17 @@ char* string_value(tree_t* n)
 }
 
 
-/* Given variable name, return assembly pointer to location */
-char* var_to_assembly(char* name)
+/* If it's a nonlocal variable, find the corrrect location and copy
+   the variable into reserved register 'rcx'.
+*/
+void grab_nonlocal_var(char* name)
 {
+	// only act if variable is nonlocal
+	if(get_entry_id(top_table(), name))
+		return;
+	
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# find nonlocal variable\n");
+
 	// count how many scopes back the variable is
 	int scopes_back = 0;
 	table_t* table = top_table();
@@ -261,19 +271,37 @@ char* var_to_assembly(char* name)
 	}
 
 	// traverse back correct number of scopes to access variable 
-	char base_ptr[100] = "";
+	fprintf(outfile, "\tmov\t\trcx, rbp\n");
 	for(int i = 0; i < scopes_back; i++)
-		strcat(base_ptr, "[");
-	strcat(base_ptr, "rbp");
-	for(int i = 0; i < scopes_back; i++)
-		strcat(base_ptr, "-16]");
+	{
+		fprintf(outfile, "\tmov\t\trcx, QWORD PTR [rcx-16]\n");
+	}
 
 	// find offset for parameter or variable
+	int params = table->num_params;
+	if(id <= params) // parameter
+		fprintf(outfile, "\tmov\t\trcx, QWORD PTR [rcx+%d]\n", (params-id+2)*8);
+	else // local variable
+		fprintf(outfile, "\tmov\t\trcx, QWORD PTR [rcx-%d]\n", (id-params+2)*8);
+
+	if (GENCODE_DEBUG) fprintf(outfile, "\t# end nonlocal variable\n");
+}
+
+
+/* Given variable name, return assembly pointer to location */
+char* var_to_assembly(char* name)
+{
+	// return if nonlocal
+	if(!get_entry_id(top_table(), name))
+		return strdup("rcx");
+
+	// otherwise, it's local! find offset
+	int id = get_entry_id(top_table(), name);
 	int params = top_table()->num_params;
 	if(id <= params) // parameter
 	{
 		char str[150];
-		sprintf(str, "QWORD PTR [%s+", base_ptr);
+		sprintf(str, "QWORD PTR [rbp+");
 		char num[20];
 		sprintf(num, "%d", (params-id+2)*8); // store below base pointer and rip
 		strcat(str, num);
@@ -283,7 +311,7 @@ char* var_to_assembly(char* name)
 	else // local variable
 	{
 		char str[150];
-		sprintf(str, "QWORD PTR [%s-", base_ptr);
+		sprintf(str, "QWORD PTR [rbp-");
 		char num[20];
 		sprintf(num, "%d", (id-params+2)*8); 	// store above base pointer,
 		strcat(str, num);						// leaving room for return value
@@ -447,6 +475,7 @@ void call_procedure(tree_t* n)
 		fprintf(outfile, "\tmov\t\trax, QWORD PTR fs:40\n");
 		fprintf(outfile, "\txor\t\teax, eax\n");
 		fprintf(outfile, "\tmov\t\trax, QWORD PTR stdin[rip]\n");
+		grab_nonlocal_var(var_name);
 		fprintf(outfile, "\tlea\t\trdx, %s\n", var_to_assembly(var_name));
 		fprintf(outfile, "\tmov\t\tesi, OFFSET FLAT:.LC0\n");
 		fprintf(outfile, "\tmov\t\trdi, rax\n");
@@ -623,10 +652,16 @@ char* get_end(char* reg)
    2. caller points to the caller's symbol table entry
    3. the new function was called by a sibling or parent
 */
-char* get_static_parent()
+void push_static_parent()
 {
 	if(top_table()->parent == caller) // called by parent
-		return strdup("[rbp]");
+		fprintf(outfile, "\tpush\t[rbp]\n");
 	else // called by sibling, use that function's parent
-		return strdup("QWORD PTR [[rbp]-16]");
+	{
+		int r = pop(rstack);
+		fprintf(outfile, "\tmov\t\t%s, QWORD PTR [rbp]\n", reg_string(r));
+		fprintf(outfile, "\tmov\t\t%s, QWORD PTR [%s-16]\n", reg_string(r), reg_string(r));
+		fprintf(outfile, "\tpush\t%s\n", reg_string(r));
+		push(r, rstack);
+	}
 }
