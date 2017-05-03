@@ -9,6 +9,39 @@
 stack_t* rstack;
 FILE* outfile;
 
+/*
+      REGISTER STACK
+   --------------------
+
+								the value of each register is its initial index
+   -------------------
+   |       r8        | 7		positive-index values are stored in reg array
+   -------------------			register name is given by static name list
+   |       r9        | 6
+   -------------------
+   |       r10       | 5
+   -------------------
+   |       r11       | 4
+   -------------------
+   |       r12       | 3
+   -------------------
+   |       r13       | 2
+   -------------------
+   |       r14       | 1
+   -------------------
+   |       r15       | 0
+-------------------------		negative-index values stored in temp array
+   |      temp1      | -1		index 0 of temp array is never used
+   -------------------			names are calculated based on offset from rbp
+   |      temp2      | -2
+   -------------------
+   |      temp3      | -3
+   -------------------
+            .
+   			.
+			.
+*/
+
 
 /* Print all registers (including temps) */
 void print_regs(stack_t* stack)
