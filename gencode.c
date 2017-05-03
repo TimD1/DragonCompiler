@@ -519,8 +519,10 @@ void call_procedure(tree_t* n)
 	else if(!strcmp(name, "write")) // special case
 	{
 		tree_t* var_ptr = n->right->right;
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# evaluate 'write' arguments\n");
+		gencode(var_ptr);
 		if (GENCODE_DEBUG) fprintf(outfile, "\n# call 'write' using fprintf\n");
-		fprintf(outfile, "\tmov\t\trdx, %s\n", string_value(var_ptr));
+		fprintf(outfile, "\tmov\t\trdx, %s\n", reg_string(top(rstack)));
 		fprintf(outfile, "\tmov\t\trax, QWORD PTR stderr[rip]\n");
 		fprintf(outfile, "\tmov\t\tesi, OFFSET FLAT:.LC1\n");
 		fprintf(outfile, "\tmov\t\trdi, rax\n");
@@ -529,7 +531,6 @@ void call_procedure(tree_t* n)
 	}
 	else // normal function
 	{
-		if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name);
 		entry_t* entry_ptr = find_entry(top_table(), name);
 		if(entry_ptr != NULL) // function valid
 		{
@@ -539,12 +540,15 @@ void call_procedure(tree_t* n)
 				exit(0);
 			}
 
+			if (GENCODE_DEBUG) fprintf(outfile, "\n# evaluate '%s' arguments\n", name);
 			tree_t* list_ptr = n->right;
 			for(int i = 0; i < entry_ptr->arg_num; i++)
 			{
-				fprintf(outfile,"\tpush %s\n", string_value(list_ptr->right));
+				gencode(list_ptr->right);
+				fprintf(outfile,"\tpush %s\n", reg_string(top(rstack)));
 				list_ptr = list_ptr->left;
 			}
+			if (GENCODE_DEBUG) fprintf(outfile, "\n# call procedure '%s'\n", name);
 			fprintf(outfile, "\tcall\t%s\n", name);
 			fprintf(outfile, "\tadd\t\trsp, %d\n", 8*entry_ptr->arg_num);
 		}
@@ -566,7 +570,6 @@ void call_function(tree_t* n)
 
 	char* name = strdup(n->left->attribute.sval);
 
-	if (GENCODE_DEBUG) fprintf(outfile, "\n# call function '%s'\n", name);
 	entry_t* entry_ptr = find_entry(top_table(), name);
 	if(entry_ptr != NULL) // function valid
 	{
@@ -576,12 +579,15 @@ void call_function(tree_t* n)
 			exit(0);
 		}
 
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# evaluate '%s' arguments\n", name);
 		tree_t* list_ptr = n->right;
 		for(int i = 0; i < entry_ptr->arg_num; i++)
 		{
-			fprintf(outfile,"\tpush %s\n", string_value(list_ptr->right));
+			gencode(list_ptr->right);
+			fprintf(outfile,"\tpush %s\n", reg_string(top(rstack)));
 			list_ptr = list_ptr->left;
 		}
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# call function '%s'\n", name);
 		fprintf(outfile, "\tcall\t%s\n", name);
 		fprintf(outfile, "\tadd\t\trsp, %d\n", 8*entry_ptr->arg_num);
 	}

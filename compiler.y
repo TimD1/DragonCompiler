@@ -336,8 +336,8 @@ stmt
 			$$ = $1;
 			call_procedure($$);
 		}
-	/* | compound_stmt */
-	/* 	{ $$ = $1; } */
+	| compound_stmt
+		{ $$ = $1; }
  	| IF expr THEN { start_if_gencode($2, $1); } stmt 
 		{
 			$$ = str_tree(IF, "if then", $2, $5);
