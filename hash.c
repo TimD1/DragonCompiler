@@ -41,6 +41,7 @@ table_t* push_table(char* name, int class)
 	ptr->table_class = class;
 	ptr->table_size = 0;
 	ptr->assembly_label = 0;
+	ptr->temp_offset = 2*8; // offset for parent ptr and return address
 	ptr->parent = top_table();
 
 	// set new table's pointers
@@ -693,9 +694,11 @@ void make_vars(tree_t* var_ptr, tree_t* type_ptr)
 			switch(var_type)
 			{
 			case INTEGER:
+				top_table()->temp_offset += 8;
 				make_var_inum(var_name);
 				break;
 			case REAL:
+				top_table()->temp_offset += 8;
 				make_var_rnum(var_name);
 				break;
 			default:

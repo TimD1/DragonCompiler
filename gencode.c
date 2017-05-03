@@ -627,12 +627,6 @@ void gencode(tree_t* n)
 		print_code(n->attribute.opval, reg_string(r), reg_string(top(rstack)));
 		push(r, rstack);
 	}
-
-	/* Case 4: insufficient registers */ //shouldn't need this for now
-	else
-	{
-		fprintf(stderr, "ERROR: Case 4 of gencode reached.");
-	}
 }
 
 

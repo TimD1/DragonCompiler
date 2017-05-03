@@ -43,6 +43,7 @@ typedef struct table_s {
 	int table_size;
 	int num_params;
 	int num_locals;
+	int temp_offset;
 	int assembly_label;
 	char* table_name;
 	int table_class;

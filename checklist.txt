@@ -32,7 +32,7 @@ X	Error reporting
 X	Input/Output statements
 X	Simple expressions (arithmetic and relational): gencode
 X	Statements (assignment, conditional, loop)
-	Nonlocal names: base frame pointer (static scope parent)
+X	Nonlocal names: base frame pointer (static scope parent)
 	Recursive routines (example: GCD program)
 	Complex expressions (register spilling)
 	(optional) Arrays (L-value, R-value, parameters, nonlocal)

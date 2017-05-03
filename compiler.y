@@ -54,6 +54,8 @@ int main(int argc, char** argv)
 	rstack = (stack_t*)malloc(sizeof(stack_t));
 	for(int i = 0; i < MAX_REGS; i++)
 		rstack->reg[i] = i;
+	for(int i = 0; i < MAX_TEMPS; i++)
+		rstack->temp[i] = -i; // skip over temp[0] later
 	rstack->top_idx = MAX_REGS-1;
 
 	// parse input file
@@ -334,8 +336,8 @@ stmt
 			$$ = $1;
 			call_procedure($$);
 		}
-	| compound_stmt
-		{ $$ = $1; }
+	/* | compound_stmt */
+	/* 	{ $$ = $1; } */
  	| IF expr THEN { start_if_gencode($2, $1); } stmt 
 		{
 			$$ = str_tree(IF, "if then", $2, $5);
