@@ -40,6 +40,7 @@ table_t* push_table(char* name, int class)
 	ptr->table_name = strdup(name);
 	ptr->table_class = class;
 	ptr->table_size = 0;
+	ptr->assembly_label = 0;
 	ptr->parent = top_table();
 
 	// set new table's pointers

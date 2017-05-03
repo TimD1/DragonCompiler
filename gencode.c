@@ -163,6 +163,8 @@ void function_footer(tree_t* n)
 	char* fn_name = name_ptr->attribute.sval;
 
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# function footer\n");
+	fprintf(outfile, ".L%d:\n", n->attribute.ival);
+	fprintf(outfile, "\tmov\t\trax, QWORD PTR [rbp-8]\n");
 	fprintf(outfile, "\tmov\t\trsp, rbp\n");
 	fprintf(outfile, "\tpop\t\trbp\n");
 	fprintf(outfile, "\tret\n");
@@ -236,6 +238,8 @@ char* string_value(tree_t* n)
 		case STRING:
 			grab_nonlocal_var(n->attribute.sval);
 			return var_to_assembly(n->attribute.sval);
+		case PARENOP: // function call
+			return strdup("rax");
 		default:
 			return strdup("???");
 	}
@@ -331,13 +335,34 @@ char* var_to_assembly(char* name)
 }
 
 
-/* Given pointer to assignment statement, assign rval to left */
+/* Given an integer l, assign it to the top scope's assembly label.
+   This will make label '.Ll' visible throughout the function and allow jumps
+   to the end whenever return statements are encountered. */
+void set_fn_assembly_label(int l)
+{
+	top_table()->assembly_label = l;
+}
+
+
+/* Given pointer to assignment statement, assign rval to left. 
+   If the left value is a string named identically to the current function,
+   then this is actually a return statement. */
 void assignment_gencode(tree_t* n)
 {
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# evaluate expression\n");
 	gencode(n->right);
-	if (GENCODE_DEBUG) fprintf(outfile, "\n# assignment\n");
-	fprintf(outfile, "\tmov\t\t%s, %s\n", string_value(n->left), reg_string(top(rstack)));
+	if(!strcmp(n->left->attribute.sval, top_table()->table_name))
+	{
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# return statement\n");
+		fprintf(outfile, "\tmov\t\tQWORD PTR [rbp-8], %s\n", reg_string(top(rstack)));
+		fprintf(outfile, "\tjmp\t\t.L%d\n", top_table()->assembly_label);
+	}
+	else
+	{
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# assignment\n");
+		fprintf(outfile, "\tmov\t\t%s, %s\n", 
+			string_value(n->left), reg_string(top(rstack)));
+	}
 }
 
 
@@ -346,7 +371,7 @@ void start_if_gencode(tree_t* n, int label_num)
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# start if\n");
 	gencode(n); // evaluate conditional
 	fprintf(outfile, "\tcmp\t\t%s, 0\n", reg_string(top(rstack)));
-	fprintf(outfile, "\tje .L%d\n", label_num);
+	fprintf(outfile, "\tje\t\t.L%d\n", label_num);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end conditional\n");
 }
 
@@ -356,7 +381,7 @@ void start_if_else_gencode(tree_t* n, int label_num)
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# start if-else\n");
 	gencode(n); // evaluate conditional
 	fprintf(outfile, "\tcmp\t\t%s, 0\n", reg_string(top(rstack)));
-	fprintf(outfile, "\tje .L%d\n", label_num);
+	fprintf(outfile, "\tje\t\t.L%d\n", label_num);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end conditional\n");
 }
 
@@ -364,7 +389,7 @@ void start_if_else_gencode(tree_t* n, int label_num)
 void mid_if_else_gencode(int label_num)
 {
 	if (GENCODE_DEBUG) fprintf(outfile, "\n# mid if-else\n");
-	fprintf(outfile, "\tjmp .L%d\n", label_num+1);
+	fprintf(outfile, "\tjmp\t\t.L%d\n", label_num+1);
 	fprintf(outfile, ".L%d:\n", label_num);
 }
 
@@ -382,14 +407,14 @@ void start_while_do_gencode(tree_t* n, int label_num)
 	fprintf(outfile, ".L%d:\n", label_num);
 	gencode(n); // evaluate conditional
 	fprintf(outfile, "\tcmp\t\t%s, 0\n", reg_string(top(rstack)));
-	fprintf(outfile, "\tje .L%d\n", label_num+1);
+	fprintf(outfile, "\tje\t\t.L%d\n", label_num+1);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end while, start do\n");
 }
 
 
 void end_while_do_gencode(int label_num)
 {
-	fprintf(outfile, "\tjmp .L%d\n", label_num);
+	fprintf(outfile, "\tjmp\t\t.L%d\n", label_num);
 	fprintf(outfile, ".L%d:\n", label_num+1);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end do\n");
 }
@@ -407,7 +432,7 @@ void end_repeat_until_gencode(tree_t* n, int label_num)
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end repeat, start until\n");
 	gencode(n); // evaluate conditional
 	fprintf(outfile, "\tcmp\t\t%s, 0\n", reg_string(top(rstack)));
-	fprintf(outfile, "\tje .L%d\n", label_num);
+	fprintf(outfile, "\tje\t\t.L%d\n", label_num);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end until\n");
 }
 
@@ -434,13 +459,13 @@ void start_for_gencode(int l, tree_t* var, tree_t* e1, char* to_downto, tree_t* 
 	if(UP)
 	{
 		fprintf(outfile, "\tcmp\t\t%s, rbx\n", string_value(var));
-		fprintf(outfile, "\tjg .L%d\n", l+1);
+		fprintf(outfile, "\tjg\t\t.L%d\n", l+1);
 		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start do");
 	}
 	else
 	{
 		fprintf(outfile, "\tcmp\t\t%s, rbx\n", string_value(var));
-		fprintf(outfile, "\tjl .L%d\n", l+1);
+		fprintf(outfile, "\tjl\t\t.L%d\n", l+1);
 		if (GENCODE_DEBUG) fprintf(outfile, "\t# end for\n\n# start do");
 	}
 }
@@ -457,13 +482,13 @@ void end_for_gencode(int l, tree_t* var, char* to_downto)
 	else
 		fprintf(outfile, "\tdec\t\t%s\n", string_value(var));
 
-	fprintf(outfile, "\tjmp .L%d\n", l);
+	fprintf(outfile, "\tjmp\t\t.L%d\n", l);
 	fprintf(outfile, ".L%d:\n", l+1);
 	if (GENCODE_DEBUG) fprintf(outfile, "\t# end for-do\n");
 }
 
 
-/* Given pointer to procedure call, copy params into correct registers
+/* Given pointer to procedure call, copy params onto the stack
    before calling it. If it's 'write' or 'read', use overloaded fprintf. */
 void call_procedure(tree_t* n)
 {
@@ -476,7 +501,6 @@ void call_procedure(tree_t* n)
 		return;
 	}
 
-	/* static char* arg_regs[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"}; */
 	char* name = strdup(n->left->attribute.sval);
 	if(!strcmp(name, "read")) // special case
 	{
@@ -516,15 +540,50 @@ void call_procedure(tree_t* n)
 			}
 
 			tree_t* list_ptr = n->right;
-			fprintf(outfile, "# copy for procedure: variable -> stack\n");
 			for(int i = 0; i < entry_ptr->arg_num; i++)
 			{
 				fprintf(outfile,"\tpush %s\n", string_value(list_ptr->right));
 				list_ptr = list_ptr->left;
 			}
-			fprintf(outfile, "\tcall %s\n", name);
+			fprintf(outfile, "\tcall\t%s\n", name);
 			fprintf(outfile, "\tadd\t\trsp, %d\n", 8*entry_ptr->arg_num);
 		}
+	}
+}
+
+
+/* Given pointer to function call, copy params onto the stack before calling. */
+void call_function(tree_t* n)
+{
+	// if procedure takes no arguments, there's nothing to do
+	if(n->type != PARENOP)
+	{	
+		char* name = strdup(n->attribute.sval);
+		if (GENCODE_DEBUG) fprintf(outfile, "\n# call function '%s'\n", name);
+		fprintf(outfile, "\tcall\t%s\n\n", name);
+		return;
+	}
+
+	char* name = strdup(n->left->attribute.sval);
+
+	if (GENCODE_DEBUG) fprintf(outfile, "\n# call function '%s'\n", name);
+	entry_t* entry_ptr = find_entry(top_table(), name);
+	if(entry_ptr != NULL) // function valid
+	{
+		if(entry_ptr->entry_class != FUNCTION)
+		{
+			fprintf(stderr, "\nERROR, LINE %d: '%s' is not a function.\n", yylineno, name);
+			exit(0);
+		}
+
+		tree_t* list_ptr = n->right;
+		for(int i = 0; i < entry_ptr->arg_num; i++)
+		{
+			fprintf(outfile,"\tpush %s\n", string_value(list_ptr->right));
+			list_ptr = list_ptr->left;
+		}
+		fprintf(outfile, "\tcall\t%s\n", name);
+		fprintf(outfile, "\tadd\t\trsp, %d\n", 8*entry_ptr->arg_num);
 	}
 
 }
@@ -537,7 +596,7 @@ void gencode(tree_t* n)
 		return;
 
 	/* Case 0: n is a left leaf */
-	if(leaf_node(n) && n->ershov_num == 1)
+	if((leaf_node(n) && n->ershov_num == 1) || n->type == PARENOP)
 		print_code("mov", reg_string(top(rstack)), string_value(n));
 
 	/* Case 1: the right child of n is a leaf */

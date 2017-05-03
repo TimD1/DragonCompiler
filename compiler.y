@@ -262,6 +262,7 @@ subprogram_head
 		{
 			$$ = int_tree(FUNCTION, $1, $2, $4);
 			make_function($2, $4);
+			set_fn_assembly_label($1);
 		}
 	| PROCEDURE proc_header ';'
 		{
@@ -446,7 +447,10 @@ factor
 	| id '[' expr ']'
 		{ $$ = op_tree(ARRAYOP, "[]", $1, $3); }
 	| id '(' expr_list ')'
-		{ $$ = op_tree(PARENOP, "()", $1, $3); }
+		{
+			$$ = op_tree(PARENOP, "()", $1, $3);
+			call_function($$);
+		}
 	| inum
 		{ $$ = $1; }
 	| rnum

@@ -24,6 +24,7 @@ void add_io_code();
 void main_footer();
 void function_header(tree_t* n);
 void function_footer(tree_t* n);
+void set_fn_assembly_label(int l);
 char* ia64(char* opval);
 void print_code(char* opval, char* left, char* right);
 char* string_value(tree_t* n);
@@ -43,6 +44,7 @@ void end_for_gencode(int l, tree_t* var, char* to_downto);
 
 void assignment_gencode(tree_t* n);
 void call_procedure(tree_t* n);
+void call_function(tree_t* n);
 char* var_to_assembly(char* name);
 void grab_nonlocal_var(char* name);
 void gencode(tree_t* n);
