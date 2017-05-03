@@ -16,16 +16,16 @@ FILE* outfile;
    	REGISTERS
    	---------
 	
-	rax = return value & division
+	rax = return value, division
 	rbx = for loops
 	rcx = nonlocal variable access
 	rsp = stack pointer
 	rbp = base pointer
 	rip = instruction pointer
 
-	rdi = reserved for io use
-	rsi = reserved for io use
-	rdx = reserved for io use & division
+	rdi = reserved for io use, temp regs
+	rsi = reserved for io use, temp regs
+	rdx = reserved for io use, division
 	
 
 	r8  = temp var (top of stack)
@@ -597,13 +597,23 @@ void gencode(tree_t* n)
 
 	/* Case 0: n is a left leaf */
 	if((leaf_node(n) && n->ershov_num == 1) || n->type == PARENOP)
-		print_code("mov", reg_string(top(rstack)), string_value(n));
+	{
+		if(top(rstack) < 0 && n->type == IDENT) // two memory locations
+			memory_workaround_code("mov", reg_string(top(rstack)), string_value(n));
+		else
+			print_code("mov", reg_string(top(rstack)), string_value(n));
+	}
 
 	/* Case 1: the right child of n is a leaf */
-	else if( !empty(n->right) && leaf_node(n->right) && n->right->ershov_num == 0)
+	else if(!empty(n->right) && leaf_node(n->right) && n->right->ershov_num == 0)
 	{
 		gencode(n->left);
-		print_code(n->attribute.opval, reg_string(top(rstack)), string_value(n->right));
+		if(top(rstack) < 0 && n->right->type == IDENT) // two memory locations
+			memory_workaround_code(n->attribute.opval,
+				reg_string(top(rstack)), string_value(n->right));
+		else
+			print_code(n->attribute.opval, 
+				reg_string(top(rstack)), string_value(n->right));
 	}
 
 	/* Case 2: the right subproblem is larger */
@@ -613,7 +623,11 @@ void gencode(tree_t* n)
 		gencode(n->right);
 		int r = pop(rstack);
 		gencode(n->left);
-		print_code(n->attribute.opval, reg_string(top(rstack)), reg_string(r));
+		if(r < 0 && top(rstack) < 0) // two memory locations
+			memory_workaround_code(n->attribute.opval, 
+				reg_string(top(rstack)), reg_string(r));
+		else
+			print_code(n->attribute.opval, reg_string(top(rstack)), reg_string(r));
 		push(r, rstack);
 		swap(rstack);
 	}
@@ -624,12 +638,31 @@ void gencode(tree_t* n)
 		gencode(n->left);
 		int r = pop(rstack);
 		gencode(n->right);
-		print_code(n->attribute.opval, reg_string(r), reg_string(top(rstack)));
+		if(r < 0 && top(rstack) < 0) // two memory locations
+			memory_workaround_code(n->attribute.opval, reg_string(r), 
+				reg_string(top(rstack)));
+		else
+			print_code(n->attribute.opval, reg_string(r), reg_string(top(rstack)));
 		push(r, rstack);
 	}
 }
 
 
+/* If both operands are memory locations, use the rdi and rsi as intermediary
+   registers to store values, since 'mov' and other operations cannot be
+   performed given two memory locations as arguments. */
+void memory_workaround_code(char* opval, char* left, char* right)
+{
+	fprintf(outfile, "\tmov\t\trdi, %s\n", left);
+	fprintf(outfile, "\tmov\t\trsi, %s\n", right);
+	print_code(opval, "rdi", "rsi");
+	fprintf(outfile, "\tmov\t\t%s, rdi\n", left);
+	fprintf(outfile, "\tmov\t\t%s, rsi\n", right);
+}
+
+
+/* Given an operand, two values, and a flag indicating whether they're both memory
+   locations, select and print the correct assembly instruction to file. */
 void print_code(char* opval, char* left, char* right)
 {
 	// leaf

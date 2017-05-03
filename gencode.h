@@ -27,6 +27,7 @@ void function_footer(tree_t* n);
 void set_fn_assembly_label(int l);
 char* ia64(char* opval);
 void print_code(char* opval, char* left, char* right);
+void memory_workaround_code(char* opval, char* left, char* right);
 char* string_value(tree_t* n);
 char* get_end(char* r);
 void push_static_parent();

@@ -7,6 +7,7 @@
 #include "externs.h"
 
 stack_t* rstack;
+FILE* outfile;
 
 
 /* Print all registers (including temps) */
