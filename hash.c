@@ -623,7 +623,7 @@ tree_t* find_return_stmt(char* fn_name, tree_t* t)
 int count_args(tree_t* arg_ptr)
 {
 	int count = 0;
-	while(arg_ptr->type == LISTOP)
+	while(arg_ptr->type == LISTOP && !leaf_node(arg_ptr))
 	{
 		count++;
 		arg_ptr = arg_ptr->left;

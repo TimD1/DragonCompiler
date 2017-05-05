@@ -300,7 +300,7 @@ int type(tree_t* t)
 		}
 		
 		// everything is fine
-		return INUM;
+		return BOOL;
 		break;
 
 

@@ -700,8 +700,12 @@ void print_code(char* opval, char* left, char* right)
 	else if(!strcmp(opval, "or"))
 		fprintf(outfile, "\tor\t\t%s, %s\n", left, right);
 
-	/* if(!strcmp(opval, "not")) */
-	/* 	fprintf(outfile, "\tnot %s\n", left); */
+	else if(!strcmp(opval, "not"))
+	{
+		fprintf(outfile, "\tcmp\t\t%s, 0\n", left);
+		fprintf(outfile, "\tsete\t%s\n", get_end(left));
+		fprintf(outfile, "\tmovzx\t%s, %s\n", left, get_end(left));
+	}
 
 	// relations
 	else 

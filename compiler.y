@@ -174,6 +174,7 @@ int main(int argc, char** argv)
 start
 	: program
 		{ print_tree($1, 0); }
+	;
 
 program
 	: PROGRAM fn { push_table($2->attribute.sval, FUNCTION); } '(' ident_list ')' { add_io($5); } ';' decls subprogram_decls { main_header(); caller = top_table(); } compound_stmt '.'
@@ -406,6 +407,8 @@ expr_list
 		{ $$ = op_tree(LISTOP, ",", empty_tree(), $1); }
 	| expr_list ',' expr
 		{ $$ = op_tree(LISTOP, ",", $1, $3); }
+	| /* empty */
+		{ $$ = op_tree(LISTOP, ",", empty_tree(), empty_tree()); }
 	;
 
 expr
@@ -428,12 +431,17 @@ expr
 simple_expr
 	: term
 		{ $$ = $1; }
-	| ADDOP term						/* optional sign, ? */ 
-		{ $$ = op_tree(ADDOP, $1, $2, empty_tree()); }
+	| ADDOP term
+		{ 	
+			$$ = op_tree(ADDOP, $1, 
+					int_tree(INUM, 0, empty_tree(), empty_tree()), 
+					$2
+				);
+		}
 	| simple_expr ADDOP term
 		{ $$ = op_tree(ADDOP, $2, $1, $3); }
-	| STRING							/* ? */
-		{ $$ = str_tree(STRING, $1, empty_tree(), empty_tree()); }
+	/* | STRING							/1* ? *1/ */
+	/* 	{ $$ = str_tree(STRING, $1, empty_tree(), empty_tree()); } */
 	;
 
 term
