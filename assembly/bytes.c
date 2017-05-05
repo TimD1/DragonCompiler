@@ -2,8 +2,10 @@
 
 int main()
 {
-	char a;
-	fscanf(stdin,"%c", &a);
-
+	char a = 'c';
+	char* ptr;
+	a--;
+	ptr = &a;
+	(*ptr)++;
 	fprintf(stderr, "%c\n", a);
 }

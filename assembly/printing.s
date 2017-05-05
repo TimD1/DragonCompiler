@@ -2,7 +2,7 @@
 	.intel_syntax noprefix
 	.section	.rodata
 .LC0:
-	.string	"%lld\n"
+	.string	"%c\n"
 	.text
 	.globl	main
 	.type	main, @function
@@ -11,14 +11,14 @@ main:
 	mov	rbp, rsp
 	sub	rsp, 16
 
-
-	mov	rdx, 123
+	mov	BYTE PTR [rbp-1], 99
+	movsx	edx, BYTE PTR [rbp-1]
+	mov	rax, QWORD PTR stderr[rip]
 	mov	esi, OFFSET FLAT:.LC0
-	mov	rdi, QWORD PTR stderr[rip]
+	mov	rdi, rax
 	mov	eax, 0
 	call	fprintf
-	
-	
+
 	mov	eax, 0
 	leave
 	ret
